@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>叮叮學堂｜默書小教練</title>
+<style>
+  :root{
+    --paper:#FCFCF8;
+    --ink:#20304F;
+    --rule:#AFC6DC;
+    --margin-red:#D8453C;
+    --pen-red:#D8453C;
+    --board-green:#2E6E52;
+    --soft:#EEF1EA;
+    --shadow:0 10px 30px rgba(32,48,79,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Microsoft JhengHei",sans-serif;
+    background:
+      radial-gradient(1200px 500px at 80% -10%, #E7EEE4 0%, transparent 60%),
+      #F2F3EF;
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+  header.app{display:flex;align-items:baseline;gap:10px;margin:8px 0 20px}
+  header.app h1{font-size:1.35rem;letter-spacing:.02em}
+  header.app .en{font-size:.8rem;color:var(--board-green);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+
+  .card{
+    background:var(--paper);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:22px 20px;
+    margin-bottom:16px;
+    border:1px solid #E4E2D8;
+  }
+  .card h2{font-size:1.02rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .step-dot{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--board-green);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;flex:none;
+  }
+  textarea{
+    width:100%;min-height:150px;resize:vertical;
+    font-family:"Menlo","Courier New",monospace;font-size:1rem;
+    border:1.5px solid #D8D5C8;border-radius:10px;
+    padding:12px;background:#fff;color:var(--ink);
+  }
+  textarea:focus{outline:2px solid var(--board-green);outline-offset:1px}
+  .hint{font-size:.82rem;color:#7A8496;margin-top:8px;line-height:1.5}
+
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .opt{background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;padding:10px 12px}
+  .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
+  .opt select{width:100%;border:none;background:transparent;font-size:.95rem;color:var(--ink);font-family:inherit}
+  .opt select:focus{outline:none}
+  .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.9rem}
+  .checkline input{width:18px;height:18px;accent-color:var(--board-green)}
+
+  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  button{
+    font-family:inherit;cursor:pointer;border:none;border-radius:12px;
+    font-size:1rem;padding:13px 20px;font-weight:600;
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  button:active{transform:scale(.97)}
+  .primary{background:var(--board-green);color:#fff;flex:1;box-shadow:0 4px 0 #1F5940}
+  .primary:active{box-shadow:0 1px 0 #1F5940}
+  .secondary{background:#fff;color:var(--ink);border:1.5px solid #C9C6B8}
+  .ghost{background:transparent;color:var(--board-green);padding:10px 12px;font-size:.9rem}
+
+  /* ---------- practice ---------- */
+  .progress{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap}
+  .pdot{width:14px;height:14px;border-radius:50%;background:#DDDACB;flex:none}
+  .pdot.done{background:var(--board-green)}
+  .pdot.wrong{background:var(--pen-red)}
+  .pdot.now{background:#fff;border:3px solid var(--board-green)}
+
+  .speak-zone{text-align:center;padding:8px 0 18px}
+  .speak-btn{
+    width:96px;height:96px;border-radius:50%;
+    background:var(--board-green);color:#fff;font-size:2.2rem;
+    box-shadow:0 6px 0 #1F5940, var(--shadow);
+  }
+  .speak-btn:active{box-shadow:0 2px 0 #1F5940}
+  .speak-label{margin-top:10px;font-size:.85rem;color:#7A8496}
+
+  /* four-line penmanship ruling */
+  .ruled-box{
+    position:relative;background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;
+    padding:6px 14px 6px 34px;overflow:hidden;
+  }
+  .ruled-box::before{ /* red margin line, like an exercise book */
+    content:"";position:absolute;left:22px;top:0;bottom:0;width:1.5px;background:var(--margin-red);opacity:.55;
+  }
+  .ruled{
+    position:relative;height:76px;width:100%;
+    background:
+      linear-gradient(var(--rule),var(--rule)) 0 12px/100% 1.5px no-repeat,
+      repeating-linear-gradient(90deg, var(--rule) 0 6px, transparent 6px 12px) 0 37px/100% 1.2px no-repeat,
+      linear-gradient(var(--ink),var(--ink)) 0 62px/100% 1.5px no-repeat;
+  }
+  .ruled input{
+    position:absolute;inset:0;width:100%;height:100%;
+    border:none;background:transparent;text-align:center;
+    font-family:"Comic Sans MS","Chalkboard SE","Segoe Print",cursive;
+    font-size:2.1rem;color:var(--ink);letter-spacing:.06em;
+    padding-bottom:12px;
+  }
+  .ruled input:focus{outline:none}
+  .ruled input::placeholder{color:#C8CFDB;font-size:1.1rem;letter-spacing:0}
+
+  .feedback{min-height:64px;text-align:center;padding-top:10px}
+  .tick{width:52px;height:52px}
+  .tick path{stroke:var(--pen-red);stroke-width:7;fill:none;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:80;stroke-dashoffset:80;animation:draw .4s ease forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .fb-word{font-size:1.05rem;margin-top:4px}
+  .fb-word b{color:var(--pen-red);letter-spacing:.04em}
+  .fb-good{color:var(--board-green);font-weight:700}
+
+  /* result stamp */
+  .result{text-align:center;padding:10px 0}
+  .stamp{
+    display:inline-block;border:4px solid var(--pen-red);color:var(--pen-red);
+    border-radius:50%;width:130px;height:130px;line-height:1.15;
+    padding-top:34px;font-weight:800;font-size:1.5rem;
+    transform:rotate(-8deg);margin:10px 0 6px;
+    font-family:Georgia,serif;
+  }
+  .stamp small{display:block;font-size:.7rem;letter-spacing:.2em;font-weight:600}
+  .tricky{margin-top:14px;text-align:left;background:var(--soft);border-radius:10px;padding:12px 14px;font-size:.92rem}
+  .tricky b{color:var(--pen-red)}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .topbar .count{font-size:.85rem;color:#7A8496}
+
+  .hidden{display:none}
+
+  /* ---------- print sheet ---------- */
+  #printArea{display:none}
+  @media print{
+    body *{visibility:hidden}
+    #printArea,#printArea *{visibility:visible}
+    #printArea{display:block;position:absolute;left:0;top:0;width:100%}
+    .sheet{page-break-after:always;padding:10mm 12mm;font-family:Georgia,"Times New Roman",serif;color:#111}
+    .sheet:last-child{page-break-after:auto}
+    .sheet-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #111;padding-bottom:6px;margin-bottom:4px}
+    .sheet-head h3{font-size:15pt;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+    .sheet-head .blanks{font-size:10.5pt}
+    .sheet-sub{font-size:9pt;color:#444;margin-bottom:8px;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+    .prow{display:flex;align-items:flex-end;gap:6mm;padding:1.2mm 0}
+    .prow .num{width:8mm;font-size:11pt;text-align:right}
+    .prow .plines{
+      flex:1;height:15mm;
+      background:
+        linear-gradient(#9db6cc,#9db6cc) 0 2.5mm/100% .4mm no-repeat,
+        repeating-linear-gradient(90deg,#9db6cc 0 2mm,transparent 2mm 4mm) 0 7.2mm/100% .3mm no-repeat,
+        linear-gradient(#111,#111) 0 12mm/100% .4mm no-repeat;
+    }
+    .keyrow{font-size:12pt;padding:1.6mm 0;border-bottom:.3mm dotted #999;display:flex;gap:6mm}
+    .keyrow .num{width:8mm;text-align:right}
+    .footer-note{margin-top:6mm;font-size:8pt;color:#777;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+  }
+
+  @media (max-width:480px){
+    .opts{grid-template-columns:1fr}
+    .stamp{width:110px;height:110px;padding-top:28px;font-size:1.3rem}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .tick path{animation:none;stroke-dashoffset:0}
+    button{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <h1>默書小教練</h1><span class="en">叮叮學堂 DingDing Academy</span>
+  </header>
+
+  <!-- ============ SETUP ============ -->
+  <section id="viewSetup">
+    <div class="card">
+      <h2><span class="step-dot">1</span>貼上今個星期嘅默書詞表</h2>
+      <textarea id="wordInput" placeholder="每行一個字或詞組，例如：
+
+apple
+banana
+orange
+I like fruit."></textarea>
+      <div class="hint">支援單字同短句。字典會自動讀出嚟，小朋友聽住串字。</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step-dot">2</span>設定</h2>
+      <div class="opts">
+        <div class="opt">
+          <label>讀字速度</label>
+          <select id="optRate">
+            <option value="0.85" selected>慢慢讀（適合初小）</option>
+            <option value="1">正常</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>把聲（逐把試，揀最清）</label>
+          <select id="optVoice"><option value="">自動揀</option></select>
+        </div>
+        <div class="opt">
+          <label>聲音（揀最自然嗰把）</label>
+          <select id="optVoice"></select>
+        </div>
+        <div class="opt">
+          <label>次序</label>
+          <select id="optOrder">
+            <option value="seq">照詞表順序</option>
+            <option value="shuffle" selected>隨機打亂</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>錯字處理</label>
+          <select id="optRetry">
+            <option value="recycle" selected>錯咗排返隊尾再默</option>
+            <option value="once">每字只默一次</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="btnStart">▶ 開始默書</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step-dot">🖨</span>列印默書紙（可存做PDF）</h2>
+      <label class="checkline"><input type="checkbox" id="optKey" checked> 連埋答案頁（畀家長對）</label>
+      <div class="btnrow">
+        <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
+      </div>
+      <div class="hint">會生成一張學校格式嘅四線默書紙。喺列印視窗揀「儲存為 PDF」即可。</div>
+    </div>
+  </section>
+
+  <!-- ============ PRACTICE ============ -->
+  <section id="viewPractice" class="hidden">
+    <div class="card">
+      <div class="topbar">
+        <button class="ghost" id="btnQuit">← 返回設定</button>
+        <span class="count" id="countLabel"></span>
+      </div>
+      <div class="progress" id="progressBar"></div>
+
+      <div class="speak-zone">
+        <button class="speak-btn" id="btnSpeak" aria-label="播放讀音">🔊</button>
+        <div class="speak-label">撳一下再聽一次</div>
+      </div>
+
+      <div class="ruled-box">
+        <div class="ruled">
+          <input type="text" id="answerInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="喺呢度串字…">
+        </div>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+
+      <div class="btnrow">
+        <button class="primary" id="btnCheck">對答案 ✓</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULT ============ -->
+  <section id="viewResult" class="hidden">
+    <div class="card result">
+      <div class="stamp"><span id="scoreNum"></span><small>DICTATION</small></div>
+      <div id="resultMsg" style="font-size:1.05rem;font-weight:600"></div>
+      <div class="tricky hidden" id="trickyBox"></div>
+      <div class="btnrow" style="margin-top:18px">
+        <button class="primary" id="btnRetryWrong">只再默錯字</button>
+        <button class="secondary" id="btnRetryAll">全部再默一次</button>
+      </div>
+      <div class="btnrow">
+        <button class="ghost" id="btnBackHome" style="flex:1">← 返回設定</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ PRINT SHEET ============ -->
+<div id="printArea"></div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult')};
+  function show(name){for(var k in views){views[k].classList.toggle('hidden',k!==name)}window.scrollTo(0,0)}
+
+  /* ---------- word list ---------- */
+  function getWords(){
+    return $('wordInput').value.split(/\n+/).map(function(s){return s.trim()}).filter(Boolean);
+  }
+  function shuffle(a){
+    for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}
+    return a;
+  }
+
+  /* ---------- speech ---------- */
+  var voices=[];
+  function fillVoiceList(){
+    var sel=$('optVoice');if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">自動揀</option>';
+    voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0})
+      .forEach(function(v){
+        var o=document.createElement('option');
+        o.value=v.name;o.textContent=v.name+' ('+v.lang+')';
+        sel.appendChild(o);
+      });
+    sel.value=cur;
+  }
+  function loadVoices(){voices=window.speechSynthesis?speechSynthesis.getVoices():[];fillVoiceList()}
+  if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+  var PRONOUNCE={was:'wuz',from:'frum',his:'hizz',of:'ov'};
+  function speak(text){
+    if(!window.speechSynthesis){alert('呢部裝置唔支援語音朗讀');return}
+    speechSynthesis.cancel();
+    var t=text.trim();
+    var sayWord=PRONOUNCE[t.toLowerCase()]||t;
+    var spoken=t.indexOf(' ')<0 ? 'The word is: '+sayWord+'.' : t;
+    var u=new SpeechSynthesisUtterance(spoken);
+    var lang='en-US';
+    u.lang=lang;
+    u.rate=parseFloat($('optRate').value);
+    var chosen=$('optVoice')?$('optVoice').value:'';
+    if(chosen){
+      var m=voices.filter(function(v){return v.name===chosen});
+      if(m.length)u.voice=m[0];
+    }
+    if(!u.voice){
+    var pool=voices.filter(function(v){return v.lang&&v.lang.replace('_','-').indexOf(lang)===0});
+    if(!pool.length) pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
+    if(pool.length){
+      var score=function(v){
+        var n=(v.name||'').toLowerCase(),s=0;
+        if(n.indexOf('natural')>=0)s+=5;
+        if(n.indexOf('enhanced')>=0||n.indexOf('premium')>=0)s+=4;
+        if(n.indexOf('siri')>=0)s+=4;
+        if(n.indexOf('google')>=0)s+=3;
+        if(n.indexOf('samantha')>=0||n.indexOf('ava')>=0||n.indexOf('allison')>=0)s+=2;
+        if(v.localService===false)s+=1;
+        return s;
+      };
+      pool.sort(function(a,b){return score(b)-score(a)});
+      u.voice=pool[0];
+    }
+    }
+    speechSynthesis.speak(u);
+  }
+
+  /* ---------- practice state ---------- */
+  var queue=[],total=0,idx=0,firstTry={},wrongSet={},answered=false,statusMap=[];
+
+  function startPractice(list){
+    queue=list.slice();
+    if($('optOrder').value==='shuffle') shuffle(queue);
+    total=queue.length;idx=0;firstTry={};wrongSet={};statusMap=queue.map(function(){return 0});
+    show('practice');
+    renderProgress();
+    nextWordUI(true);
+  }
+
+  function renderProgress(){
+    var bar=$('progressBar');bar.innerHTML='';
+    for(var i=0;i<queue.length;i++){
+      var d=document.createElement('span');
+      d.className='pdot'+(i<idx?(statusMap[i]===2?' wrong':' done'):(i===idx?' now':''));
+      bar.appendChild(d);
+    }
+    $('countLabel').textContent='第 '+Math.min(idx+1,queue.length)+' / '+queue.length+' 個';
+  }
+
+  function nextWordUI(auto){
+    answered=false;
+    $('answerInput').value='';
+    $('feedback').innerHTML='';
+    $('btnCheck').textContent='對答案 ✓';
+    renderProgress();
+    $('answerInput').focus();
+    if(auto) setTimeout(function(){speak(queue[idx])},350);
+  }
+
+  function normalize(s){return s.trim().replace(/\s+/g,' ').toLowerCase()}
+
+  function checkAnswer(){
+    if(idx>=queue.length) return;
+    var word=queue[idx];
+    if(!answered){
+      var ok=normalize($('answerInput').value)===normalize(word);
+      if(!(word in firstTry)) firstTry[word]=ok;
+      var fb=$('feedback');
+      if(ok){
+        statusMap[idx]=1;
+        fb.innerHTML='<svg class="tick" viewBox="0 0 60 60"><path d="M10 32 L24 46 L52 14"/></svg><div class="fb-word fb-good">串啱喇！</div>';
+      }else{
+        statusMap[idx]=2;
+        wrongSet[word]=true;
+        fb.innerHTML='<div style="font-size:2rem;color:var(--pen-red)">✗</div><div class="fb-word">正確串法：<b>'+escapeHtml(word)+'</b></div>';
+        if($('optRetry').value==='recycle'){queue.push(word);statusMap.push(0)}
+      }
+      answered=true;
+      $('btnCheck').textContent=(idx+1>=queue.length)?'睇成績 →':'下一個字 →';
+      renderProgress();
+    }else{
+      idx++;
+      if(idx>=queue.length){showResult()}
+      else{nextWordUI(true)}
+    }
+  }
+
+  function showResult(){
+    var list=Object.keys(firstTry);
+    var right=list.filter(function(w){return firstTry[w]}).length;
+    var score=Math.round(right/list.length*100);
+    $('scoreNum').textContent=score+'分';
+    $('resultMsg').textContent=score===100?'滿分！勁呀！ 🎉':(score>=80?'好叻仔！差少少就滿分':'唔緊要，錯字再默多次就記得');
+    var wrongs=Object.keys(wrongSet);
+    var box=$('trickyBox');
+    if(wrongs.length){
+      box.classList.remove('hidden');
+      box.innerHTML='要留意嘅字：'+wrongs.map(function(w){return '<b>'+escapeHtml(w)+'</b>'}).join('、 ');
+    }else{box.classList.add('hidden')}
+    $('btnRetryWrong').style.display=wrongs.length?'':'none';
+    show('result');
+  }
+
+  function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+  /* ---------- print ---------- */
+  function buildPrint(){
+    var words=getWords();
+    if(!words.length){alert('請先貼上詞表');return false}
+    var today=new Date();
+    var dateStr=today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日';
+    var rows=words.map(function(w,i){
+      return '<div class="prow"><div class="num">'+(i+1)+'.</div><div class="plines"></div></div>';
+    }).join('');
+    var html='<div class="sheet">'+
+      '<div class="sheet-head"><h3>英文默書 English Dictation</h3>'+
+      '<div class="blanks">姓名 Name: ____________ &nbsp; 日期 Date: ____________ &nbsp; 分數 Score: ______</div></div>'+
+      '<div class="sheet-sub">共 '+words.length+' 個字 · '+dateStr+' 由「默書小教練」生成</div>'+
+      rows+
+      '<div class="footer-note">溫馨提示：默之前可以用「默書小教練」聽讀音練習，錯字會自動重默。</div>'+
+      '</div>';
+    if($('optKey').checked){
+      html+='<div class="sheet">'+
+        '<div class="sheet-head"><h3>答案頁 Answer Key（家長用）</h3><div class="blanks">'+dateStr+'</div></div>'+
+        words.map(function(w,i){return '<div class="keyrow"><div class="num">'+(i+1)+'.</div><div>'+escapeHtml(w)+'</div></div>'}).join('')+
+        '</div>';
+    }
+    $('printArea').innerHTML=html;
+    return true;
+  }
+
+  /* ---------- wire up ---------- */
+  $('btnStart').onclick=function(){
+    var words=getWords();
+    if(!words.length){alert('請先貼上詞表（每行一個字）');return}
+    startPractice(words);
+  };
+  $('btnPrint').onclick=function(){if(buildPrint())window.print()};
+  $('btnSpeak').onclick=function(){if(idx<queue.length)speak(queue[idx])};
+  $('btnCheck').onclick=checkAnswer;
+  $('answerInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkAnswer()});
+  $('btnQuit').onclick=function(){speechSynthesis&&speechSynthesis.cancel();show('setup')};
+  $('btnBackHome').onclick=function(){show('setup')};
+  $('btnRetryAll').onclick=function(){startPractice(getWords())};
+  $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>叮叮學堂｜默書小教練</title>
+<!-- 品牌名待定案，定咗之後改呢兩個位（title + header .en） -->
+<title>默書小教練</title>
 <style>
   :root{
     --paper:#FCFCF8;
@@ -29,7 +30,6 @@
   header.app{display:flex;align-items:baseline;gap:10px;margin:8px 0 20px}
   header.app h1{font-size:1.35rem;letter-spacing:.02em}
   header.app .en{font-size:.8rem;color:var(--board-green);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-
   .card{
     background:var(--paper);
     border-radius:14px;
@@ -53,7 +53,6 @@
   }
   textarea:focus{outline:2px solid var(--board-green);outline-offset:1px}
   .hint{font-size:.82rem;color:#7A8496;margin-top:8px;line-height:1.5}
-
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
   .opt{background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;padding:10px 12px}
   .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
@@ -61,7 +60,6 @@
   .opt select:focus{outline:none}
   .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.9rem}
   .checkline input{width:18px;height:18px;accent-color:var(--board-green)}
-
   .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
   button{
     font-family:inherit;cursor:pointer;border:none;border-radius:12px;
@@ -80,7 +78,6 @@
   .pdot.done{background:var(--board-green)}
   .pdot.wrong{background:var(--pen-red)}
   .pdot.now{background:#fff;border:3px solid var(--board-green)}
-
   .speak-zone{text-align:center;padding:8px 0 18px}
   .speak-btn{
     width:96px;height:96px;border-radius:50%;
@@ -89,13 +86,17 @@
   }
   .speak-btn:active{box-shadow:0 2px 0 #1F5940}
   .speak-label{margin-top:10px;font-size:.85rem;color:#7A8496}
+  .slow-btn{
+    margin-top:6px;background:#fff;color:var(--board-green);
+    border:1.5px solid #C9C6B8;font-size:.9rem;padding:9px 16px;border-radius:10px;
+  }
 
   /* four-line penmanship ruling */
   .ruled-box{
     position:relative;background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;
     padding:6px 14px 6px 34px;overflow:hidden;
   }
-  .ruled-box::before{ /* red margin line, like an exercise book */
+  .ruled-box::before{
     content:"";position:absolute;left:22px;top:0;bottom:0;width:1.5px;background:var(--margin-red);opacity:.55;
   }
   .ruled{
@@ -114,7 +115,6 @@
   }
   .ruled input:focus{outline:none}
   .ruled input::placeholder{color:#C8CFDB;font-size:1.1rem;letter-spacing:0}
-
   .feedback{min-height:64px;text-align:center;padding-top:10px}
   .tick{width:52px;height:52px}
   .tick path{stroke:var(--pen-red);stroke-width:7;fill:none;stroke-linecap:round;stroke-linejoin:round;
@@ -136,10 +136,8 @@
   .stamp small{display:block;font-size:.7rem;letter-spacing:.2em;font-weight:600}
   .tricky{margin-top:14px;text-align:left;background:var(--soft);border-radius:10px;padding:12px 14px;font-size:.92rem}
   .tricky b{color:var(--pen-red)}
-
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .topbar .count{font-size:.85rem;color:#7A8496}
-
   .hidden{display:none}
 
   /* ---------- print sheet ---------- */
@@ -167,7 +165,6 @@
     .keyrow .num{width:8mm;text-align:right}
     .footer-note{margin-top:6mm;font-size:8pt;color:#777;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
   }
-
   @media (max-width:480px){
     .opts{grid-template-columns:1fr}
     .stamp{width:110px;height:110px;padding-top:28px;font-size:1.3rem}
@@ -181,7 +178,7 @@
 <body>
 <div class="wrap">
   <header class="app">
-    <h1>默書小教練</h1><span class="en">叮叮學堂 DingDing Academy</span>
+    <h1>默書小教練</h1><span class="en">Dictation Coach</span>
   </header>
 
   <!-- ============ SETUP ============ -->
@@ -189,12 +186,11 @@
     <div class="card">
       <h2><span class="step-dot">1</span>貼上今個星期嘅默書詞表</h2>
       <textarea id="wordInput" placeholder="每行一個字或詞組，例如：
-
 apple
 banana
 orange
 I like fruit."></textarea>
-      <div class="hint">支援單字同短句。字典會自動讀出嚟，小朋友聽住串字。</div>
+      <div class="hint">支援單字同短句。單字會讀成 "The word is: ___. Now write it."，句尾有保護，短字唔會再一嚿聲聽唔清。</div>
     </div>
 
     <div class="card">
@@ -210,10 +206,6 @@ I like fruit."></textarea>
         <div class="opt">
           <label>把聲（逐把試，揀最清）</label>
           <select id="optVoice"><option value="">自動揀</option></select>
-        </div>
-        <div class="opt">
-          <label>聲音（揀最自然嗰把）</label>
-          <select id="optVoice"></select>
         </div>
         <div class="opt">
           <label>次序</label>
@@ -255,8 +247,9 @@ I like fruit."></textarea>
       <div class="progress" id="progressBar"></div>
 
       <div class="speak-zone">
-        <button class="speak-btn" id="btnSpeak" aria-label="播放讀音">🔊</button>
+        <button class="speak-btn" id="btnSpeak" aria-label="再聽一次">🔊</button>
         <div class="speak-label">撳一下再聽一次</div>
+        <button class="slow-btn" id="btnSlow">🐢 慢啲讀</button>
       </div>
 
       <div class="ruled-box">
@@ -312,7 +305,7 @@ I like fruit."></textarea>
   var voices=[];
   function fillVoiceList(){
     var sel=$('optVoice');if(!sel)return;
-    var cur=sel.value;
+    var cur=sel.value||savedVoice();
     sel.innerHTML='<option value="">自動揀</option>';
     voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0})
       .forEach(function(v){
@@ -321,44 +314,92 @@ I like fruit."></textarea>
         sel.appendChild(o);
       });
     sel.value=cur;
+    if(sel.value!==cur) sel.value='';   // 呢部機冇咗嗰把聲，回落自動揀
   }
   function loadVoices(){voices=window.speechSynthesis?speechSynthesis.getVoices():[];fillVoiceList()}
   if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
-  var PRONOUNCE={was:'wuz',from:'frum',his:'hizz',of:'ov'};
-  function speak(text){
-    if(!window.speechSynthesis){alert('呢部裝置唔支援語音朗讀');return}
-    speechSynthesis.cancel();
-    var t=text.trim();
-    var sayWord=PRONOUNCE[t.toLowerCase()]||t;
-    var spoken=t.indexOf(' ')<0 ? 'The word is: '+sayWord+'.' : t;
-    var u=new SpeechSynthesisUtterance(spoken);
-    var lang='en-US';
-    u.lang=lang;
-    u.rate=parseFloat($('optRate').value);
+
+  function pickVoice(){
     var chosen=$('optVoice')?$('optVoice').value:'';
     if(chosen){
       var m=voices.filter(function(v){return v.name===chosen});
-      if(m.length)u.voice=m[0];
+      if(m.length)return m[0];
     }
-    if(!u.voice){
-    var pool=voices.filter(function(v){return v.lang&&v.lang.replace('_','-').indexOf(lang)===0});
-    if(!pool.length) pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
-    if(pool.length){
-      var score=function(v){
-        var n=(v.name||'').toLowerCase(),s=0;
-        if(n.indexOf('natural')>=0)s+=5;
-        if(n.indexOf('enhanced')>=0||n.indexOf('premium')>=0)s+=4;
-        if(n.indexOf('siri')>=0)s+=4;
-        if(n.indexOf('google')>=0)s+=3;
-        if(n.indexOf('samantha')>=0||n.indexOf('ava')>=0||n.indexOf('allison')>=0)s+=2;
-        if(v.localService===false)s+=1;
-        return s;
-      };
-      pool.sort(function(a,b){return score(b)-score(a)});
-      u.voice=pool[0];
-    }
-    }
-    speechSynthesis.speak(u);
+    // 唔再 en-US 優先：實測顯示清晰度比口音重要，Karen(en-AU) 目前最清
+    var pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
+    if(!pool.length) return null;
+    var score=function(v){
+      var n=(v.name||'').toLowerCase(),s=0;
+      if(n.indexOf('karen')>=0)s+=6;
+      if(n.indexOf('natural')>=0)s+=5;
+      if(n.indexOf('enhanced')>=0||n.indexOf('premium')>=0)s+=4;
+      if(n.indexOf('siri')>=0)s+=4;
+      if(n.indexOf('google')>=0)s+=3;
+      if(n.indexOf('samantha')>=0||n.indexOf('ava')>=0||n.indexOf('allison')>=0)s+=2;
+      if(v.localService===false)s+=1;
+      return s;
+    };
+    pool.sort(function(a,b){return score(b)-score(a)});
+    return pool[0];
+  }
+
+  /* 記住揀咗嘅聲，唔使每次重新揀 */
+  function savedVoice(val){
+    try{
+      if(val===undefined) return localStorage.getItem('dc_voice')||'';
+      localStorage.setItem('dc_voice',val);
+    }catch(e){}
+    return '';
+  }
+
+  /* 目標字唔可以擺喺 utterance 最尾。
+     好多 TTS 引擎會截走句尾嘅音（tail clipping），
+     而 a / an / of / was 呢類弱讀字本身就得100毫秒左右，
+     一被截就完全冇曬。所以後面一定要有 "Now write it." 做保護。
+     讀兩次，兩次都喺句中間。 */
+  function buildSpoken(raw){
+    var t=(raw||'').trim();
+    if(t.indexOf(' ')>=0) return t+' Now write it.';   // 本身已經係句子
+    return 'The word is: '+t+'. Now write it.';
+  }
+
+  /* 慢速模式：唔淨係靠 rate。
+     部分引擎（尤其 Safari + Apple 語音）會索性忽略 rate，
+     所以慢速拆成兩段獨立 utterance —— 引擎之間必定有停頓，
+     呢個係所有引擎都尊重嘅。個字照樣只讀一次，而且喺句中間唔會被截。 */
+  function buildSpokenSlow(raw){
+    var t=(raw||'').trim();
+    if(t.indexOf(' ')>=0) return ['Listen carefully.', t+' Now write it.'];
+    return ['Listen carefully.','The word is: '+t+'. Now write it.'];
+  }
+
+  function makeUtterance(txt,rate,voice){
+    var u=new SpeechSynthesisUtterance(txt);
+    if(voice){u.voice=voice; u.lang=voice.lang||'en-US';}   // lang 跟返把聲，唔好夾硬鎖 en-US
+    else{u.lang='en-US';}
+    u.rate=rate; u.pitch=1;
+    return u;
+  }
+
+  function speak(text,slow){
+    if(!window.speechSynthesis){alert('呢部裝置唔支援語音朗讀');return}
+    var t=(text||'').trim();
+    if(!t)return;
+
+    var rate=parseFloat($('optRate').value)||0.85;
+    if(t.indexOf(' ')<0 && t.length<=4) rate=rate-0.15;   // 短字再慢啲
+    if(slow) rate=0.6;
+    rate=Math.max(0.5,Math.min(1.2,rate));
+
+    var v=pickVoice();
+    var parts=slow?buildSpokenSlow(t):[buildSpoken(t)];
+
+    speechSynthesis.cancel();
+    // Chrome/Safari 已知問題：cancel() 之後即刻 speak() 會食咗開頭
+    setTimeout(function(){
+      try{speechSynthesis.resume()}catch(e){}
+      parts.forEach(function(p){speechSynthesis.speak(makeUtterance(p,rate,v))});
+    },90);
   }
 
   /* ---------- practice state ---------- */
@@ -372,7 +413,6 @@ I like fruit."></textarea>
     renderProgress();
     nextWordUI(true);
   }
-
   function renderProgress(){
     var bar=$('progressBar');bar.innerHTML='';
     for(var i=0;i<queue.length;i++){
@@ -382,7 +422,6 @@ I like fruit."></textarea>
     }
     $('countLabel').textContent='第 '+Math.min(idx+1,queue.length)+' / '+queue.length+' 個';
   }
-
   function nextWordUI(auto){
     answered=false;
     $('answerInput').value='';
@@ -392,7 +431,6 @@ I like fruit."></textarea>
     $('answerInput').focus();
     if(auto) setTimeout(function(){speak(queue[idx])},350);
   }
-
   function normalize(s){return s.trim().replace(/\s+/g,' ').toLowerCase()}
 
   function checkAnswer(){
@@ -424,7 +462,7 @@ I like fruit."></textarea>
   function showResult(){
     var list=Object.keys(firstTry);
     var right=list.filter(function(w){return firstTry[w]}).length;
-    var score=Math.round(right/list.length*100);
+    var score=list.length?Math.round(right/list.length*100):0;
     $('scoreNum').textContent=score+'分';
     $('resultMsg').textContent=score===100?'滿分！勁呀！ 🎉':(score>=80?'好叻仔！差少少就滿分':'唔緊要，錯字再默多次就記得');
     var wrongs=Object.keys(wrongSet);
@@ -436,7 +474,6 @@ I like fruit."></textarea>
     $('btnRetryWrong').style.display=wrongs.length?'':'none';
     show('result');
   }
-
   function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
   /* ---------- print ---------- */
@@ -472,13 +509,15 @@ I like fruit."></textarea>
     startPractice(words);
   };
   $('btnPrint').onclick=function(){if(buildPrint())window.print()};
-  $('btnSpeak').onclick=function(){if(idx<queue.length)speak(queue[idx])};
+  $('btnSpeak').onclick=function(){if(idx<queue.length)speak(queue[idx],false)};
+  $('btnSlow').onclick=function(){if(idx<queue.length)speak(queue[idx],true)};
   $('btnCheck').onclick=checkAnswer;
   $('answerInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkAnswer()});
-  $('btnQuit').onclick=function(){speechSynthesis&&speechSynthesis.cancel();show('setup')};
+  $('btnQuit').onclick=function(){window.speechSynthesis&&speechSynthesis.cancel();show('setup')};
   $('btnBackHome').onclick=function(){show('setup')};
   $('btnRetryAll').onclick=function(){startPractice(getWords())};
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
+  $('optVoice').addEventListener('change',function(){savedVoice(this.value)});
 })();
 </script>
 </body>

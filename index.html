@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- 品牌名待定案，定咗之後改呢兩個位（title + header .en） -->
-<title>默書小教練</title>
+
+<title>貼堂 TipTong｜英文默書練習</title>
 <style>
   :root{
     --paper:#FCFCF8;
@@ -27,9 +27,11 @@
     min-height:100vh;
   }
   .wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
-  header.app{display:flex;align-items:baseline;gap:10px;margin:8px 0 20px}
-  header.app h1{font-size:1.35rem;letter-spacing:.02em}
-  header.app .en{font-size:.8rem;color:var(--board-green);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  header.app{display:flex;align-items:center;gap:11px;margin:10px 0 20px}
+  header.app .logo{width:44px;height:44px;flex:none}
+  header.app .brand{display:flex;flex-direction:column;line-height:1.15}
+  header.app h1{font-size:1.3rem;letter-spacing:.06em}
+  header.app .en{font-size:.72rem;color:var(--board-green);font-weight:700;letter-spacing:.18em;text-transform:uppercase}
   .card{
     background:var(--paper);
     border-radius:14px;
@@ -58,6 +60,13 @@
   .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
   .opt select{width:100%;border:none;background:transparent;font-size:.95rem;color:var(--ink);font-family:inherit}
   .opt select:focus{outline:none}
+  .saverow{display:flex;gap:8px;margin-top:10px;align-items:stretch}
+  .saverow input[type=text],.saverow select{
+    flex:1;min-width:0;border:1.5px solid #D8D5C8;border-radius:10px;
+    padding:10px 12px;font-family:inherit;font-size:.92rem;background:#fff;color:var(--ink);
+  }
+  .saverow input[type=text]:focus,.saverow select:focus{outline:2px solid var(--board-green);outline-offset:1px}
+  .saverow button{padding:10px 14px;font-size:.9rem;flex:none}
   .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.9rem}
   .checkline input{width:18px;height:18px;accent-color:var(--board-green)}
   .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
@@ -136,34 +145,52 @@
   .stamp small{display:block;font-size:.7rem;letter-spacing:.2em;font-weight:600}
   .tricky{margin-top:14px;text-align:left;background:var(--soft);border-radius:10px;padding:12px 14px;font-size:.92rem}
   .tricky b{color:var(--pen-red)}
+  .optin{margin-top:16px;text-align:left;background:#fff;border:1.5px dashed var(--board-green);
+         border-radius:12px;padding:14px 15px}
+  .optin-h{font-weight:700;font-size:.98rem;margin-bottom:5px}
+  .optin-p{font-size:.85rem;color:#5C6675;line-height:1.5;margin-bottom:11px}
+  .optin-row{display:flex;gap:8px}
+  .optin-row input{flex:1;min-width:0;border:1.5px solid #D8D5C8;border-radius:10px;
+                   padding:11px 12px;font-family:inherit;font-size:.95rem;color:var(--ink)}
+  .optin-row input:focus{outline:2px solid var(--board-green);outline-offset:1px}
+  .optin-row button{flex:none;padding:11px 16px;font-size:.92rem;box-shadow:0 3px 0 #1F5940}
+  .optin-msg{font-size:.85rem;margin-top:9px;min-height:1.1em}
+  .optin-msg.ok{color:var(--board-green);font-weight:700}
+  .optin-msg.err{color:var(--pen-red)}
+  .optin .ghost{display:block;margin:6px auto 0;font-size:.82rem;color:#7A8496}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .topbar .count{font-size:.85rem;color:#7A8496}
   .hidden{display:none}
 
-  /* ---------- print sheet ---------- */
+  /* ---------- print sheet ----------
+     用 border-bottom 畫線，唔用 CSS background gradient ——
+     瀏覽器預設會剝走背景圖案先至列印，用背景畫線好多時印出嚟係白紙一張，
+     而如果用戶自己開咗「背景圖形」，成版 body 底色就會一齊印落去（張紙變晒色）。
+     border 冇呢個問題，永遠印得出。 */
   #printArea{display:none}
   @media print{
+    @page{margin:14mm 13mm}
+    html,body{background:#fff !important}
     body *{visibility:hidden}
     #printArea,#printArea *{visibility:visible}
-    #printArea{display:block;position:absolute;left:0;top:0;width:100%}
-    .sheet{page-break-after:always;padding:10mm 12mm;font-family:Georgia,"Times New Roman",serif;color:#111}
+    #printArea{display:block;position:absolute;left:0;top:0;width:100%;background:#fff}
+    .sheet{page-break-after:always;color:#000;background:#fff;
+           font-family:Georgia,"Times New Roman",serif}
     .sheet:last-child{page-break-after:auto}
-    .sheet-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #111;padding-bottom:6px;margin-bottom:4px}
-    .sheet-head h3{font-size:15pt;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
-    .sheet-head .blanks{font-size:10.5pt}
-    .sheet-sub{font-size:9pt;color:#444;margin-bottom:8px;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
-    .prow{display:flex;align-items:flex-end;gap:6mm;padding:1.2mm 0}
-    .prow .num{width:8mm;font-size:11pt;text-align:right}
-    .prow .plines{
-      flex:1;height:15mm;
-      background:
-        linear-gradient(#9db6cc,#9db6cc) 0 2.5mm/100% .4mm no-repeat,
-        repeating-linear-gradient(90deg,#9db6cc 0 2mm,transparent 2mm 4mm) 0 7.2mm/100% .3mm no-repeat,
-        linear-gradient(#111,#111) 0 12mm/100% .4mm no-repeat;
-    }
-    .keyrow{font-size:12pt;padding:1.6mm 0;border-bottom:.3mm dotted #999;display:flex;gap:6mm}
-    .keyrow .num{width:8mm;text-align:right}
-    .footer-note{margin-top:6mm;font-size:8pt;color:#777;font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+    .sheet-head{border-bottom:1.2pt solid #000;padding-bottom:5pt;margin-bottom:6pt}
+    .sheet-head h3{font-size:14pt;margin-bottom:5pt;
+                   font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+    .sheet-head .blanks{font-size:10pt}
+    .sheet-sub{font-size:8.5pt;color:#555;margin-bottom:2mm;
+               font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+    .prow{display:flex;align-items:flex-end;gap:5mm;padding-top:11mm}
+    .prow .num{width:7mm;margin-right:5mm;font-size:11pt;text-align:right;line-height:1}
+    .prow .pline{flex:1;height:0;border-bottom:.5pt solid #000}
+    .keyrow{display:flex;gap:5mm;font-size:12pt;padding:2.6mm 0;
+            border-bottom:.4pt solid #BBB}
+    .keyrow .num{width:7mm;margin-right:5mm;text-align:right}
+    .sheet-foot{margin-top:7mm;font-size:8pt;color:#666;
+                font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
   }
   @media (max-width:480px){
     .opts{grid-template-columns:1fr}
@@ -178,7 +205,15 @@
 <body>
 <div class="wrap">
   <header class="app">
-    <h1>默書小教練</h1><span class="en">Dictation Coach</span>
+    <svg class="logo" viewBox="0 0 100 100" role="img" aria-label="貼堂 TipTong">
+      <rect width="100" height="100" rx="22" fill="#2E6E52"/>
+      <text x="50" y="67" text-anchor="middle" font-size="58" fill="#FCFCF8"
+            font-family="'Songti TC','Noto Serif CJK HK','PingFang HK','Microsoft JhengHei',serif"
+            font-weight="700">貼</text>
+      <path d="M17 79 Q50 87 83 79" stroke="#D8453C" stroke-width="5.5"
+            fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="brand"><h1>貼堂</h1><span class="en">TipTong</span></div>
   </header>
 
   <!-- ============ SETUP ============ -->
@@ -190,7 +225,15 @@ apple
 banana
 orange
 I like fruit."></textarea>
-      <div class="hint">支援單字同短句。單字會讀成 "The word is: ___. Now write it."，句尾有保護，短字唔會再一嚿聲聽唔清。</div>
+      <div class="saverow">
+        <input type="text" id="listName" placeholder="詞表名（例如：P2 Unit 5）" autocomplete="off">
+        <button class="secondary" id="btnSave">💾 儲存</button>
+      </div>
+      <div class="saverow">
+        <select id="savedList"><option value="">— 揀返之前儲低嘅詞表 —</option></select>
+        <button class="secondary" id="btnLoad">載入</button>
+        <button class="ghost" id="btnDel">刪除</button>
+      </div>
     </div>
 
     <div class="card">
@@ -204,8 +247,16 @@ I like fruit."></textarea>
           </select>
         </div>
         <div class="opt">
-          <label>把聲（逐把試，揀最清）</label>
+          <label>英文讀音</label>
           <select id="optVoice"><option value="">自動揀</option></select>
+        </div>
+        <div class="opt">
+          <label>字與字之間停頓</label>
+          <select id="optGap">
+            <option value="400">短</option>
+            <option value="900" selected>中</option>
+            <option value="1600">長</option>
+          </select>
         </div>
         <div class="opt">
           <label>次序</label>
@@ -233,7 +284,6 @@ I like fruit."></textarea>
       <div class="btnrow">
         <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
       </div>
-      <div class="hint">會生成一張學校格式嘅四線默書紙。喺列印視窗揀「儲存為 PDF」即可。</div>
     </div>
   </section>
 
@@ -272,6 +322,17 @@ I like fruit."></textarea>
       <div class="stamp"><span id="scoreNum"></span><small>DICTATION</small></div>
       <div id="resultMsg" style="font-size:1.05rem;font-weight:600"></div>
       <div class="tricky hidden" id="trickyBox"></div>
+
+      <div class="optin hidden" id="optinBox">
+        <div class="optin-h">📦 開學前免費送：小一至小三常見英文詞表包</div>
+        <p class="optin-p">跟返香港課程排好，貼上去即刻用，唔使自己打字。留低email，整好即刻send俾你。</p>
+        <div class="optin-row">
+          <input type="email" id="optinEmail" placeholder="your@email.com" autocomplete="email" inputmode="email">
+          <button class="primary" id="btnOptin">免費領取</button>
+        </div>
+        <div class="optin-msg" id="optinMsg"></div>
+        <button class="ghost" id="btnOptinSkip">下次先</button>
+      </div>
       <div class="btnrow" style="margin-top:18px">
         <button class="primary" id="btnRetryWrong">只再默錯字</button>
         <button class="secondary" id="btnRetryAll">全部再默一次</button>
@@ -288,6 +349,34 @@ I like fruit."></textarea>
 
 <script>
 (function(){
+  /* ==================================================================
+     收 email 設定 —— 開戶之後填呢兩行就會生效，唔填就自動收埋個表單。
+     揀一：Formspree（最易，免費每月50封）
+       1. formspree.io 註冊 → New Form → copy 個 endpoint
+       2. EMAIL_ENDPOINT = 'https://formspree.io/f/xxxxxxx'
+     揀二：Google Form（免費無上限，適合量大）
+       1. 開一個 Google Form，得一條 email 短答題
+       2. 撳「傳送 → <>」攞 form ID，砌成
+          'https://docs.google.com/forms/d/e/xxxx/formResponse'
+       3. 喺 Form 撳右鍵「檢查」搵嗰條 entry.123456789，填落 EMAIL_FIELD
+     ================================================================== */
+  var EMAIL_ENDPOINT='https://docs.google.com/forms/d/e/1FAIpQLSd3mjJ0ls3M79-Iq0VdE_DXyhCP2rJorTLHwxihrujRf16l5Q/formResponse';
+  var EMAIL_FIELD='entry.1400846539';
+
+  function submitEmail(addr){
+    if(!EMAIL_ENDPOINT) return Promise.resolve(false);
+    if(EMAIL_ENDPOINT.indexOf('docs.google.com')>=0){
+      var fd=new FormData(); fd.append(EMAIL_FIELD,addr);
+      // Google Form 唔俾讀回應，no-cors 送出即當成功
+      return fetch(EMAIL_ENDPOINT,{method:'POST',mode:'no-cors',body:fd}).then(function(){return true});
+    }
+    return fetch(EMAIL_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({email:addr,source:'tiptong-app'})
+    }).then(function(r){return r.ok});
+  }
+
   var $=function(id){return document.getElementById(id)};
   var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult')};
   function show(name){for(var k in views){views[k].classList.toggle('hidden',k!==name)}window.scrollTo(0,0)}
@@ -352,25 +441,15 @@ I like fruit."></textarea>
     return '';
   }
 
-  /* 目標字唔可以擺喺 utterance 最尾。
-     好多 TTS 引擎會截走句尾嘅音（tail clipping），
-     而 a / an / of / was 呢類弱讀字本身就得100毫秒左右，
-     一被截就完全冇曬。所以後面一定要有 "Now write it." 做保護。
-     讀兩次，兩次都喺句中間。 */
-  function buildSpoken(raw){
+  /* 回到第一版嘅講法（學生實測話呢個最好）：
+     單字讀 "The word is: X."，短句就照讀。
+     ── 註：之前加過尾巴保護句（Now write it. / please），
+     實測證實對 the/it/his/they/on 冇幫助，證明問題唔係句尾截音，
+     而係把聲讀弱讀字本身就糊。所以保護句剷走，唔好嘥小朋友耐性。 */
+  function buildParts(raw){
     var t=(raw||'').trim();
-    if(t.indexOf(' ')>=0) return t+' Now write it.';   // 本身已經係句子
-    return 'The word is: '+t+'. Now write it.';
-  }
-
-  /* 慢速模式：唔淨係靠 rate。
-     部分引擎（尤其 Safari + Apple 語音）會索性忽略 rate，
-     所以慢速拆成兩段獨立 utterance —— 引擎之間必定有停頓，
-     呢個係所有引擎都尊重嘅。個字照樣只讀一次，而且喺句中間唔會被截。 */
-  function buildSpokenSlow(raw){
-    var t=(raw||'').trim();
-    if(t.indexOf(' ')>=0) return ['Listen carefully.', t+' Now write it.'];
-    return ['Listen carefully.','The word is: '+t+'. Now write it.'];
+    if(t.indexOf(' ')>=0) return [t];
+    return ['The word is: '+t+'.'];
   }
 
   function makeUtterance(txt,rate,voice){
@@ -379,6 +458,25 @@ I like fruit."></textarea>
     else{u.lang='en-US';}
     u.rate=rate; u.pitch=1;
     return u;
+  }
+
+  /* 唔一次過 queue 晒俾引擎（引擎自己決定停幾耐，而且好短）。
+     改成逐段 speak，用 onend + setTimeout 自己控制停頓長度，
+     咁「停耐啲」先真係做到，同埋唔使靠部機理唔理 rate。 */
+  var seqTimer=null;
+  function speakSequence(parts,rate,voice,gap){
+    speechSynthesis.cancel();
+    if(seqTimer){clearTimeout(seqTimer);seqTimer=null}
+    var i=0;
+    function next(){
+      if(i>=parts.length)return;
+      var u=makeUtterance(parts[i++],rate,voice);
+      u.onend=function(){seqTimer=setTimeout(next,gap)};
+      u.onerror=function(){seqTimer=setTimeout(next,gap)};
+      try{speechSynthesis.resume()}catch(e){}
+      speechSynthesis.speak(u);
+    }
+    seqTimer=setTimeout(next,90);   // cancel() 之後即刻 speak 會食開頭
   }
 
   function speak(text,slow){
@@ -391,15 +489,7 @@ I like fruit."></textarea>
     if(slow) rate=0.6;
     rate=Math.max(0.5,Math.min(1.2,rate));
 
-    var v=pickVoice();
-    var parts=slow?buildSpokenSlow(t):[buildSpoken(t)];
-
-    speechSynthesis.cancel();
-    // Chrome/Safari 已知問題：cancel() 之後即刻 speak() 會食咗開頭
-    setTimeout(function(){
-      try{speechSynthesis.resume()}catch(e){}
-      parts.forEach(function(p){speechSynthesis.speak(makeUtterance(p,rate,v))});
-    },90);
+    speakSequence(buildParts(t),rate,pickVoice(),300);
   }
 
   /* ---------- practice state ---------- */
@@ -429,7 +519,7 @@ I like fruit."></textarea>
     $('btnCheck').textContent='對答案 ✓';
     renderProgress();
     $('answerInput').focus();
-    if(auto) setTimeout(function(){speak(queue[idx])},350);
+    if(auto) setTimeout(function(){speak(queue[idx],false)},parseInt($('optGap').value,10)||900);
   }
   function normalize(s){return s.trim().replace(/\s+/g,' ').toLowerCase()}
 
@@ -472,6 +562,12 @@ I like fruit."></textarea>
       box.innerHTML='要留意嘅字：'+wrongs.map(function(w){return '<b>'+escapeHtml(w)+'</b>'}).join('、 ');
     }else{box.classList.add('hidden')}
     $('btnRetryWrong').style.display=wrongs.length?'':'none';
+
+    // 只喺「啱啱默完、有成功感」呢一刻問一次；答咗或者skip咗就唔再煩
+    var done=false;
+    try{done=localStorage.getItem('dc_optin')==='1'}catch(e){}
+    $('optinBox').classList.toggle('hidden',!(EMAIL_ENDPOINT && !done));
+
     show('result');
   }
   function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -480,29 +576,88 @@ I like fruit."></textarea>
   function buildPrint(){
     var words=getWords();
     if(!words.length){alert('請先貼上詞表');return false}
-    var today=new Date();
-    var dateStr=today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日';
+    var t=new Date();
+    var dateStr=t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日';
+
     var rows=words.map(function(w,i){
-      return '<div class="prow"><div class="num">'+(i+1)+'.</div><div class="plines"></div></div>';
+      return '<div class="prow"><div class="num">'+(i+1)+'.</div><div class="pline"></div></div>';
     }).join('');
+
     var html='<div class="sheet">'+
-      '<div class="sheet-head"><h3>英文默書 English Dictation</h3>'+
-      '<div class="blanks">姓名 Name: ____________ &nbsp; 日期 Date: ____________ &nbsp; 分數 Score: ______</div></div>'+
-      '<div class="sheet-sub">共 '+words.length+' 個字 · '+dateStr+' 由「默書小教練」生成</div>'+
+      '<div class="sheet-head">'+
+        '<h3>英文默書 English Dictation</h3>'+
+        '<div class="blanks">姓名 ______________　　日期 ____________　　分數 ______ / '+words.length+'</div>'+
+      '</div>'+
       rows+
-      '<div class="footer-note">溫馨提示：默之前可以用「默書小教練」聽讀音練習，錯字會自動重默。</div>'+
+      '<div class="sheet-foot">貼堂 TipTong · '+dateStr+'</div>'+
       '</div>';
+
     if($('optKey').checked){
       html+='<div class="sheet">'+
-        '<div class="sheet-head"><h3>答案頁 Answer Key（家長用）</h3><div class="blanks">'+dateStr+'</div></div>'+
-        words.map(function(w,i){return '<div class="keyrow"><div class="num">'+(i+1)+'.</div><div>'+escapeHtml(w)+'</div></div>'}).join('')+
+        '<div class="sheet-head"><h3>答案頁 Answer Key</h3>'+
+        '<div class="blanks">'+dateStr+'</div></div>'+
+        words.map(function(w,i){
+          return '<div class="keyrow"><div class="num">'+(i+1)+'.</div><div>'+escapeHtml(w)+'</div></div>';
+        }).join('')+
+        '<div class="sheet-foot">貼堂 TipTong</div>'+
         '</div>';
     }
     $('printArea').innerHTML=html;
     return true;
   }
 
+  /* ---------- 詞表儲存（學生要求）---------- */
+  var LS_LISTS='dc_lists';
+  function readLists(){
+    try{var o=JSON.parse(localStorage.getItem(LS_LISTS)||'{}');return (o&&typeof o==='object')?o:{}}
+    catch(e){return {}}
+  }
+  function writeLists(o){
+    try{localStorage.setItem(LS_LISTS,JSON.stringify(o));return true}
+    catch(e){alert('儲存唔到。可能係無痕模式，或者儲存空間滿咗。');return false}
+  }
+  function refreshSaved(){
+    var sel=$('savedList');if(!sel)return;
+    var o=readLists(),names=Object.keys(o).sort();
+    var cur=sel.value;
+    sel.innerHTML='<option value="">— 揀返之前儲低嘅詞表 —</option>';
+    names.forEach(function(n){
+      var op=document.createElement('option');
+      op.value=n;op.textContent=n+'（'+o[n].length+'字）';
+      sel.appendChild(op);
+    });
+    sel.value=cur;
+    if(sel.value!==cur)sel.value='';
+  }
+
   /* ---------- wire up ---------- */
+  $('btnSave').onclick=function(){
+    var words=getWords();
+    if(!words.length){alert('冇嘢可以儲存，請先貼上詞表');return}
+    var name=($('listName').value||'').trim();
+    if(!name){alert('請先改個名，方便下次搵返');$('listName').focus();return}
+    var o=readLists();
+    if(o[name]&&!confirm('已經有個詞表叫「'+name+'」，覆蓋佢？'))return;
+    o[name]=words;
+    if(writeLists(o)){refreshSaved();$('savedList').value=name}
+  };
+  $('btnLoad').onclick=function(){
+    var name=$('savedList').value;
+    if(!name){alert('請先揀一個詞表');return}
+    var o=readLists();
+    if(!o[name]){alert('搵唔返呢個詞表');refreshSaved();return}
+    $('wordInput').value=o[name].join('\n');
+    $('listName').value=name;
+  };
+  $('btnDel').onclick=function(){
+    var name=$('savedList').value;
+    if(!name){alert('請先揀一個詞表');return}
+    if(!confirm('刪除「'+name+'」？刪咗攞唔返。'))return;
+    var o=readLists();delete o[name];
+    if(writeLists(o)){refreshSaved();$('savedList').value=''}
+  };
+  refreshSaved();
+
   $('btnStart').onclick=function(){
     var words=getWords();
     if(!words.length){alert('請先貼上詞表（每行一個字）');return}
@@ -518,6 +673,31 @@ I like fruit."></textarea>
   $('btnRetryAll').onclick=function(){startPractice(getWords())};
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
   $('optVoice').addEventListener('change',function(){savedVoice(this.value)});
+
+  function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
+  $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
+  $('btnOptin').onclick=function(){
+    var el=$('optinEmail'),msg=$('optinMsg'),btn=this;
+    var v=(el.value||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+      msg.className='optin-msg err';msg.textContent='個email好似打錯咗，check下？';el.focus();return;
+    }
+    btn.disabled=true;msg.className='optin-msg';msg.textContent='send緊…';
+    submitEmail(v).then(function(ok){
+      if(ok){
+        markOptinDone();
+        msg.className='optin-msg ok';msg.textContent='收到！整好即刻send俾你 ✓';
+        el.disabled=true;btn.style.display='none';$('btnOptinSkip').style.display='none';
+      }else{
+        btn.disabled=false;
+        msg.className='optin-msg err';msg.textContent='send唔到，遲啲再試下。';
+      }
+    }).catch(function(){
+      btn.disabled=false;
+      msg.className='optin-msg err';msg.textContent='send唔到，遲啲再試下。';
+    });
+  };
+  $('optinEmail').addEventListener('keydown',function(e){if(e.key==='Enter')$('btnOptin').click()});
 })();
 </script>
 </body>

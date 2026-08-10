@@ -82,6 +82,11 @@
   .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
   .opt select{width:100%;border:none;background:transparent;font-size:.95rem;color:var(--ink);font-family:inherit}
   .opt select:focus{outline:none}
+  .samplerow{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
+  .samplelab{font-size:.83rem;color:#7A8496}
+  .chip{background:#fff;border:1.5px solid #C9C6B8;color:var(--ink);
+        border-radius:12px;padding:11px 16px;font-size:.92rem;font-weight:600}
+  .chip:active{background:var(--soft)}
   .saverow{display:flex;gap:8px;margin-top:10px;align-items:stretch}
   .saverow input[type=text],.saverow select{
     flex:1;min-width:0;border:1.5px solid #D8D5C8;border-radius:10px;
@@ -252,6 +257,11 @@ apple
 banana
 orange
 I like fruit."></textarea>
+      <div class="samplerow">
+        <button class="chip" id="btnDemo">▷ 試下（3個字）</button>
+        <span class="samplelab">冇帶詞表都試到</span>
+      </div>
+
       <div class="saverow">
         <input type="text" id="listName" placeholder="詞表名（例如：P2 Unit 5）" autocomplete="off">
         <button class="secondary" id="btnSave">💾 儲存</button>
@@ -693,6 +703,16 @@ I like fruit."></textarea>
   }
 
   /* ---------- wire up ---------- */
+  /* 試用詞：得3個字，唔可以做到「迷你詞表包」——嗰個係付費產品。
+     選字準則：多音節、輔音分明。單音節短字（cat/book/of/was）正正就係
+     實測證實 TTS 讀得最矇嗰批，唔可以攞嚟做第一印象。 */
+  var DEMO_WORDS=['apple','banana','orange'];
+  $('btnDemo').onclick=function(){
+    $('wordInput').value=DEMO_WORDS.join('\n');
+    $('listName').value='';
+    $('wordInput').scrollIntoView({block:'nearest'});
+  };
+
   $('btnSave').onclick=function(){
     var words=getWords();
     if(!words.length){alert('冇嘢可以儲存，請先貼上詞表');return}

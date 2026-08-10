@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>貼堂 TipTong｜英文默書練習</title>
+<meta name="description" content="貼上學校詞表，自動讀音、自動批改、錯字自動重默，一鍵印默書紙。專為香港小一至小三家長而設，免費，唔使註冊。">
+<!-- Facebook / WhatsApp 分享預覽卡。冇 og:image 個卡就得一條光禿禿嘅字，好少人撳。
+     ⚠️ 將來換咗自購域名，下面三條絕對網址要一齊改。 -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="貼堂 TipTong">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:url" content="https://dictation-coach.vercel.app/">
+<meta property="og:title" content="貼堂 TipTong｜小一至小三英文默書練習">
+<meta property="og:description" content="貼上學校詞表就自動讀音、自動批改，錯字自動排返隊尾再默，仲可以一鍵印默書紙。免費，唔使註冊。">
+<meta property="og:image" content="https://dictation-coach.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="貼堂 TipTong — 小一至小三英文默書練習">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="貼堂 TipTong｜小一至小三英文默書練習">
+<meta name="twitter:description" content="貼上學校詞表就自動讀音、自動批改，一鍵印默書紙。免費。">
+<meta name="twitter:image" content="https://dictation-coach.vercel.app/og.png">
 <style>
   :root{
     --paper:#FCFCF8;
@@ -27,6 +44,11 @@
     min-height:100vh;
   }
   .wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+  .iabwarn{background:#FFF4D6;border:1.5px solid #E0B94A;border-radius:12px;
+           padding:12px 14px;margin:12px 0 4px;font-size:.88rem;line-height:1.6;color:#5A4409}
+  .nosound{background:#FFF4D6;border:1.5px solid #E0B94A;border-radius:10px;
+           padding:11px 13px;margin-top:12px;font-size:.85rem;line-height:1.6;
+           color:#5A4409;text-align:left}
   header.app{display:flex;align-items:center;gap:11px;margin:10px 0 20px}
   header.app .logo{width:44px;height:44px;flex:none}
   header.app .brand{display:flex;flex-direction:column;line-height:1.15}
@@ -204,6 +226,11 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="iabwarn hidden" id="iabWarn">
+    ⚠️ 你而家喺 <b>Facebook／IG 入面</b>開緊，好可能<b>冇聲</b>。<br>
+    撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>（Open in browser）就會正常。
+  </div>
+
   <header class="app">
     <svg class="logo" viewBox="0 0 100 100" role="img" aria-label="貼堂 TipTong">
       <rect width="100" height="100" rx="22" fill="#2E6E52"/>
@@ -306,6 +333,12 @@ I like fruit."></textarea>
         <div class="ruled">
           <input type="text" id="answerInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="喺呢度串字…">
         </div>
+      </div>
+
+      <div class="nosound hidden" id="noSound">
+        🔇 <b>冇聲？</b>你可能喺 Facebook／IG 內置瀏覽器入面開緊。<br>
+        撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>，用 Safari 或 Chrome 開就會有聲。<br>
+        （唔想開聲都用得：直接串字對答案，或者撳下面列印默書紙。）
       </div>
 
       <div class="feedback" id="feedback"></div>
@@ -452,6 +485,28 @@ I like fruit."></textarea>
     return ['The word is: '+t+'.'];
   }
 
+  /* ---- iOS 要求第一次 speak() 必須喺用戶手勢入面發生。
+          我哋撳「開始默書」之後係用 setTimeout 先讀，會斷咗個手勢鏈，
+          所以要喺撳掣嗰一刻即刻用一個無聲 utterance 解鎖個引擎。 ---- */
+  var speechUnlocked=false;
+  function unlockSpeech(){
+    if(speechUnlocked||!window.speechSynthesis)return;
+    try{
+      var u=new SpeechSynthesisUtterance(' ');
+      u.volume=0;u.rate=1;u.lang='en-US';
+      speechSynthesis.speak(u);
+      speechUnlocked=true;
+    }catch(e){}
+  }
+
+  /* Facebook / IG / LINE / WeChat 內置瀏覽器多數閹咗語音朗讀 */
+  function isInAppBrowser(){
+    var ua=navigator.userAgent||'';
+    return /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line\/|MicroMessenger|Twitter/i.test(ua);
+  }
+  function showNoSound(){var n=$('noSound');if(n)n.classList.remove('hidden')}
+  function hideNoSound(){var n=$('noSound');if(n)n.classList.add('hidden')}
+
   function makeUtterance(txt,rate,voice){
     var u=new SpeechSynthesisUtterance(txt);
     if(voice){u.voice=voice; u.lang=voice.lang||'en-US';}   // lang 跟返把聲，唔好夾硬鎖 en-US
@@ -471,16 +526,20 @@ I like fruit."></textarea>
     function next(){
       if(i>=parts.length)return;
       var u=makeUtterance(parts[i++],rate,voice);
+      var started=false;
+      u.onstart=function(){started=true;hideNoSound()};
       u.onend=function(){seqTimer=setTimeout(next,gap)};
       u.onerror=function(){seqTimer=setTimeout(next,gap)};
       try{speechSynthesis.resume()}catch(e){}
       speechSynthesis.speak(u);
+      // 1.8秒仲未出過聲 = 呢部機／呢個瀏覽器讀唔到，畀個出路佢
+      setTimeout(function(){if(!started)showNoSound()},1200);
     }
     seqTimer=setTimeout(next,90);   // cancel() 之後即刻 speak 會食開頭
   }
 
   function speak(text,slow){
-    if(!window.speechSynthesis){alert('呢部裝置唔支援語音朗讀');return}
+    if(!window.speechSynthesis){showNoSound();return}
     var t=(text||'').trim();
     if(!t)return;
 
@@ -513,6 +572,9 @@ I like fruit."></textarea>
     $('countLabel').textContent='第 '+Math.min(idx+1,queue.length)+' / '+queue.length+' 個';
   }
   function nextWordUI(auto){
+    // 內置瀏覽器係已知高危，唔等守門狗，一開波就畀出路。
+    // 真係讀到聲嘅話 u.onstart 會即刻 hideNoSound()，唔會阻住正常用戶。
+    if(isInAppBrowser()) showNoSound();
     answered=false;
     $('answerInput').value='';
     $('feedback').innerHTML='';
@@ -658,14 +720,17 @@ I like fruit."></textarea>
   };
   refreshSaved();
 
+  if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
+
   $('btnStart').onclick=function(){
+    unlockSpeech();          // 一定要喺呢個手勢入面行，唔可以延後
     var words=getWords();
     if(!words.length){alert('請先貼上詞表（每行一個字）');return}
     startPractice(words);
   };
   $('btnPrint').onclick=function(){if(buildPrint())window.print()};
-  $('btnSpeak').onclick=function(){if(idx<queue.length)speak(queue[idx],false)};
-  $('btnSlow').onclick=function(){if(idx<queue.length)speak(queue[idx],true)};
+  $('btnSpeak').onclick=function(){unlockSpeech();if(idx<queue.length)speak(queue[idx],false)};
+  $('btnSlow').onclick=function(){unlockSpeech();if(idx<queue.length)speak(queue[idx],true)};
   $('btnCheck').onclick=checkAnswer;
   $('answerInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkAnswer()});
   $('btnQuit').onclick=function(){window.speechSynthesis&&speechSynthesis.cancel();show('setup')};

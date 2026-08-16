@@ -185,6 +185,10 @@
   .optin-msg.ok{color:var(--board-green);font-weight:700}
   .optin-msg.err{color:var(--pen-red)}
   .optin .ghost{display:block;margin:6px auto 0;font-size:.82rem;color:#7A8496}
+  .sitefoot{margin:26px 4px 0;font-size:.82rem;line-height:1.75;color:#7A8496}
+  .sitefoot p{margin-bottom:3px}
+  .sitefoot b{color:var(--ink)}
+  .sitefoot a{color:var(--board-green);font-weight:700;text-decoration:none}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .topbar .count{font-size:.85rem;color:#7A8496}
   .hidden{display:none}
@@ -322,6 +326,12 @@ I like fruit."></textarea>
         <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
       </div>
     </div>
+    <footer class="sitefoot">
+      <p>「貼堂」由一位香港私人補習老師開發，主教<b>中學數學、物理、生物</b>。</p>
+      <p>想搵補習，或者對呢個工具有意見，歡迎
+         <a href="https://wa.me/85298215212" target="_blank" rel="noopener">WhatsApp</a> 或
+         <a href="mailto:dormamon201537@gmail.com">電郵</a>。</p>
+    </footer>
   </section>
 
   <!-- ============ PRACTICE ============ -->
@@ -530,6 +540,7 @@ I like fruit."></textarea>
      咁「停耐啲」先真係做到，同埋唔使靠部機理唔理 rate。 */
   var seqTimer=null;
   function speakSequence(parts,rate,voice,gap){
+    stopAudio();
     speechSynthesis.cancel();
     if(seqTimer){clearTimeout(seqTimer);seqTimer=null}
     var i=0;
@@ -548,8 +559,73 @@ I like fruit."></textarea>
     seqTimer=setTimeout(next,90);   // cancel() 之後即刻 speak 會食開頭
   }
 
+  /* ================= 預錄音檔優先 =================
+     瀏覽器內置 TTS 讀弱讀字讀得矇，係引擎限制，前端點改都改唔到（見交接文件）。
+     解法：用付費 TTS 事先生成好音檔，當靜態檔擺喺 /audio/。
+     執行時零 API call、零成本、零伺服器 —— Vercel CDN 直接派。
+     搵唔到對應音檔就自動 fallback 返 speechSynthesis，所以生僻字一樣讀到。 */
+  var AUDIO_BASE='./audio/';
+  var audioMissing={};      // 記住邊個字冇音檔，唔使每次都試多一鑊
+  var curAudio=null, audioUnlocked=false;
+
+  function wordSlug(w){
+    return (w||'').toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+
+  /* iOS 一樣要喺用戶手勢入面先播得到 <audio> */
+  function unlockAudio(){
+    if(audioUnlocked)return;
+    try{
+      var a=new Audio();
+      a.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA';
+      a.volume=0; a.play().catch(function(){});
+      audioUnlocked=true;
+    }catch(e){}
+  }
+
+  function stopAudio(){
+    if(curAudio){try{curAudio.pause()}catch(e){}curAudio=null}
+  }
+
+  /* 試播音檔。成功 return true，冇檔／播唔到就行 onFail() */
+  function playAudioFile(word,slow,onFail){
+    var slug=wordSlug(word);
+    if(!slug||audioMissing[slug]){onFail();return}
+
+    stopAudio();
+    var a=new Audio(AUDIO_BASE+slug+'.mp3');
+    a.playbackRate=slow?0.7:1;
+    curAudio=a;
+
+    var settled=false;
+    function fail(){
+      if(settled)return; settled=true;
+      audioMissing[slug]=true;   // 下次唔使再試
+      curAudio=null;
+      onFail();
+    }
+    a.onplaying=function(){settled=true;hideNoSound()};
+    a.onerror=fail;
+    a.play().catch(fail);
+    setTimeout(function(){if(!settled)fail()},1500);   // 慢／404 都當冇檔
+  }
+
   function speak(text,slow){
+    var t=(text||'').trim();
+    if(!t)return;
+    // 單字先試預錄音檔；句子同生僻字行返 speechSynthesis
+    if(t.indexOf(' ')<0){
+      playAudioFile(t,slow,function(){speakTTS(t,slow)});
+      return;
+    }
+    speakTTS(t,slow);
+  }
+
+  function speakTTS(text,slow){
     if(!window.speechSynthesis){showNoSound();return}
+    var t=(text||'').trim();
+    if(!t)return;
     var t=(text||'').trim();
     if(!t)return;
 
@@ -743,17 +819,17 @@ I like fruit."></textarea>
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
 
   $('btnStart').onclick=function(){
-    unlockSpeech();          // 一定要喺呢個手勢入面行，唔可以延後
+    unlockSpeech(); unlockAudio();   // 一定要喺呢個手勢入面行，唔可以延後
     var words=getWords();
     if(!words.length){alert('請先貼上詞表（每行一個字）');return}
     startPractice(words);
   };
   $('btnPrint').onclick=function(){if(buildPrint())window.print()};
-  $('btnSpeak').onclick=function(){unlockSpeech();if(idx<queue.length)speak(queue[idx],false)};
-  $('btnSlow').onclick=function(){unlockSpeech();if(idx<queue.length)speak(queue[idx],true)};
+  $('btnSpeak').onclick=function(){unlockSpeech();unlockAudio();if(idx<queue.length)speak(queue[idx],false)};
+  $('btnSlow').onclick=function(){unlockSpeech();unlockAudio();if(idx<queue.length)speak(queue[idx],true)};
   $('btnCheck').onclick=checkAnswer;
   $('answerInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkAnswer()});
-  $('btnQuit').onclick=function(){window.speechSynthesis&&speechSynthesis.cancel();show('setup')};
+  $('btnQuit').onclick=function(){stopAudio();window.speechSynthesis&&speechSynthesis.cancel();show('setup')};
   $('btnBackHome').onclick=function(){show('setup')};
   $('btnRetryAll').onclick=function(){startPractice(getWords())};
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};

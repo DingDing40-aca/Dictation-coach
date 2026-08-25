@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 唔好畀 iOS／Android 強制深色模式反轉個淺色紙質背景 -->
+<meta name="color-scheme" content="light">
 
 <title>貼堂 TipTong｜英文默書練習</title>
 <meta name="description" content="貼上學校詞表，自動讀音、自動批改、錯字自動重默，一鍵印默書紙。專為香港小一至小三家長而設，免費，唔使註冊。">
@@ -228,6 +230,9 @@
   .mk .extra{color:#9AA3B2;text-decoration:line-through}
   .mk-ans{font-size:.86rem;color:#5C6675;margin-top:5px;line-height:1.7}
   .mk-ans b{color:var(--board-green)}
+  .para-score{text-align:center;padding:4px 0 18px}
+  .para-msg{font-size:1.05rem;font-weight:700;margin-top:2px}
+  .para-detail{font-size:.85rem;color:#7A8496;line-height:1.8;margin-top:7px}
   .legend{font-size:.78rem;color:#7A8496;line-height:1.9;
           background:var(--soft);border-radius:9px;padding:9px 12px;margin-bottom:14px}
   .legend i{font-style:normal;font-weight:700}
@@ -448,9 +453,10 @@ I like fruit."></textarea>
           <label>讀字速度</label>
           <select id="optParaRate">
             <option value="0.5">超慢（逐隻字咁讀）</option>
-            <option value="0.6" selected>好慢</option>
+            <option value="0.6">好慢</option>
             <option value="0.75">慢</option>
-            <option value="0.9">正常</option>
+            <option value="0.85" selected>慢慢讀（同單詞默書一樣）</option>
+            <option value="1">正常</option>
           </select>
         </div>
         <div class="opt">
@@ -470,6 +476,14 @@ I like fruit."></textarea>
             <option value="3000" selected>3 秒</option>
             <option value="5000">5 秒</option>
             <option value="8000">8 秒</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>讀標點前停幾耐</label>
+          <select id="optPunctGap">
+            <option value="400">短</option>
+            <option value="800" selected>中</option>
+            <option value="1500">長</option>
           </select>
         </div>
         <div class="opt">
@@ -1043,9 +1057,9 @@ I like fruit."></textarea>
      原本 grill-me 定案係「入一次就永遠記住」，但嗰時個鎖係 Payhip licence key
      ——取消訂閱 Payhip 會自動 disable 條 key。而家改用每月密碼，
      如果永遠記住，取消咗訂閱嘅人喺嗰部機就永遠用得，每月換密碼變成完全冇意義。
-     35 日 = 每個月要返 Payhip 攞返新密碼一次；反正每星期都要去攞詞表，
+     30 日 = 每個月要返 Payhip 攞返新密碼一次；反正每星期都要去攞詞表，
      順手嘅事。想改返永久：DAYS 設做一個好大嘅數就得。 */
-  var PLUS_DAYS=35;
+  var PLUS_DAYS=30;
   function plusState(){
     try{
       var raw=localStorage.getItem('dc_plus');
@@ -1179,6 +1193,32 @@ I like fruit."></textarea>
     return out;
   }
 
+  /* 將一組字拆成「文字部分」同「標點部分」，等佢哋可以分開讀、中間留停頓。
+     以前用 withPunctSpoken() 將 "beautiful." 直接變成 "beautiful full stop"
+     一次過讀晒，細路聽落黐埋一舊，分唔清邊個係字邊個係標點。 */
+  var PUNCT_NAME={',':'comma',';':'semicolon',':':'colon','?':'question mark',
+                  '!':'exclamation mark','.':'full stop',
+                  '，':'comma','；':'semicolon','：':'colon','？':'question mark',
+                  '！':'exclamation mark','。':'full stop'};
+  function punctNames(str){
+    var out=[];
+    for(var i=0;i<str.length;i++){if(PUNCT_NAME[str[i]])out.push(PUNCT_NAME[str[i]])}
+    return out.join(' ');
+  }
+  function splitPunctParts(text){
+    var out=[],buf=[];
+    tokenize(text).forEach(function(w){
+      var m=w.match(/^(.*?)([,;:.!?，；：？！。]+)$/);
+      if(!m){buf.push(w);return}
+      if(m[1])buf.push(m[1]);
+      if(buf.length){out.push({t:buf.join(' '),p:false});buf=[]}
+      var nm=punctNames(m[2]);
+      if(nm)out.push({t:nm,p:true});
+    });
+    if(buf.length)out.push({t:buf.join(' '),p:false});
+    return out.length?out:[{t:text,p:false}];
+  }
+
   var paraRun=0,paraTimer=null;
   function setProg(i,txt){
     for(var n=0;n<paraList.length;n++){
@@ -1194,6 +1234,17 @@ I like fruit."></textarea>
     setProg(-1,'');
   }
 
+  /* TTS 見到冇結尾標點嘅半截字，會用「未講完」嘅上揚語調讀，聽落又快又飄。
+     單詞默書讀嘅係完整句「The word is: X.」，所以語調穩陣好多——
+     呢個先係兩邊「同一把聲但唔同聲」嘅主因之一。
+     講之前補返個句號，等引擎當佢係一句完整嘢咁讀。純粹影響讀音，
+     唔會影響畫面顯示，亦唔會影響批改。 */
+  function forSpeech(txt){
+    var t=(txt||'').trim();
+    if(!t)return t;
+    return /[.!?。！？,;:]$/.test(t)?t:t+'.';
+  }
+
   function speakOne(txt,rate,run,done){
     if(!window.speechSynthesis){$('paraNoSound').classList.remove('hidden');done();return}
     try{speechSynthesis.cancel()}catch(e){}
@@ -1202,7 +1253,7 @@ I like fruit."></textarea>
     // cancel() 之後即刻 speak 會食咗開頭，要等一陣（同 speakSequence 一樣嘅教訓）
     paraTimer=setTimeout(function(){
       if(run!==paraRun)return;
-      var u=new SpeechSynthesisUtterance(txt);
+      var u=new SpeechSynthesisUtterance(forSpeech(txt));
       var v=pickVoice();
       if(v){u.voice=v;u.lang=v.lang||'en-US'}else{u.lang='en-US'}
       u.rate=rate;u.pitch=1;
@@ -1234,7 +1285,7 @@ I like fruit."></textarea>
       if(run!==paraRun)return;
       playParaAudio(text,wp,slow,run,function(){          // onFail -> TTS
         if(run!==paraRun)return;
-        speakOne(wp?withPunctSpoken(text):text,rate,run,onDone);
+        speakOne(text,rate,run,onDone);
       },onDone);                                            // onDone -> 音檔播完
     }
 
@@ -1246,20 +1297,29 @@ I like fruit."></textarea>
     var chunks=chunkSentence(raw,n);
     var reps=parseInt($('optRepeat').value,10)||2;
     var gap=parseInt($('optChunkGap').value,10)||3000;
+    var pgap=parseInt($('optPunctGap').value,10)||800;
     var seq=[],k=0;
     chunks.forEach(function(c,ci){
-      for(var r=1;r<=reps;r++)seq.push({t:c,ci:ci,r:r});
+      for(var r=1;r<=reps;r++){
+        // 開咗「讀標點」先拆開讀，標點前面留一個短停頓
+        var parts=wp?splitPunctParts(c):[{t:c,p:false}];
+        parts.forEach(function(pt,pi){
+          seq.push({t:pt.t,isP:pt.p,ci:ci,r:r,
+                    gapAfter:(pi<parts.length-1)?pgap:gap});
+        });
+      }
     });
     function step(){
       if(run!==paraRun)return;
       if(k>=seq.length){setProg(i,'✓ 讀完');
         paraTimer=setTimeout(function(){if(run===paraRun)setProg(-1,'')},1500);return}
       var it=seq[k++];
-      setProg(i,'🔊 第 '+(it.ci+1)+'／'+chunks.length+' 組　第 '+it.r+' 次');
+      setProg(i,'🔊 第 '+(it.ci+1)+'／'+chunks.length+' 組　第 '+it.r+' 次'+(it.isP?'　（標點）':''));
       playChunk(it.t,function(){
         if(run!==paraRun)return;
-        setProg(i,'✍️ 寫低…（'+Math.round(gap/1000)+' 秒）');
-        paraTimer=setTimeout(step,gap);
+        var g=it.gapAfter;
+        setProg(i,g>=1500?('✍️ 寫低…（'+Math.round(g/1000)+' 秒）'):'…');
+        paraTimer=setTimeout(step,g);
       });
     }
     step();
@@ -1348,7 +1408,7 @@ I like fruit."></textarea>
   /* 回傳 {html, spell, punct} —— 串錯字同小錯分開計 */
   function markSentence(correct,student){
     var pairs=alignTokens(tokenize(correct),tokenize(student));
-    var html='',spell=0,punct=0;
+    var html='',spell=0,punct=0,caseErr=0;
     pairs.forEach(function(p){
       var c=p[0],s=p[1];
       if(c===null){html+='<span class="extra">'+escapeHtml(s)+'</span> ';spell++;return}
@@ -1359,36 +1419,78 @@ I like fruit."></textarea>
       var bothMinor=(stripPunct(c).toLowerCase()===stripPunct(s).toLowerCase());
       if(caseOnly||punctOnly||bothMinor){
         html+='<span class="pun-err" title="'+escapeHtml(c)+'">'+escapeHtml(s)+'</span> ';
-        punct++;
+        // 分開計：標點同大細楷各自 -1。兩樣一齊錯就當兩個錯（-2），
+        // 因為佢真係兩件唔同嘅嘢做錯咗，唔可以當一個。
+        if(caseOnly)caseErr++;
+        else if(punctOnly)punct++;
+        else{punct++;caseErr++}
       }else{
         html+='<span class="sp-err">'+escapeHtml(s)+'</span> ';
         spell++;
       }
     });
-    return {html:html.trim(),spell:spell,punct:punct};
+    return {html:html.trim(),spell:spell,punct:punct,caseErr:caseErr};
+  }
+
+  /* 計分：串錯字 -3，標點 -1，大細楷 -1，滿分 100，唔會扣到負數。 */
+  var PARA_PENALTY={spell:3,punct:1,caseErr:1};
+  function paraScore(spell,punct,caseErr){
+    var lost=spell*PARA_PENALTY.spell+punct*PARA_PENALTY.punct+caseErr*PARA_PENALTY.caseErr;
+    return {score:Math.max(0,100-lost),lost:lost};
   }
 
   function showParaResult(){
     var ans=paraAnswers();
     var box=$('paraMarks');box.innerHTML='';
-    var totalSpell=0,totalPunct=0,perfect=0;
+    var totalSpell=0,totalPunct=0,totalCase=0,perfect=0;
+    var rows=[];
     paraList.forEach(function(correct,i){
       var r=markSentence(correct,ans[i]);
-      totalSpell+=r.spell;totalPunct+=r.punct;
-      if(r.spell===0&&r.punct===0)perfect++;
+      totalSpell+=r.spell;totalPunct+=r.punct;totalCase+=r.caseErr;
+      if(!r.spell&&!r.punct&&!r.caseErr)perfect++;
+      rows.push({r:r,correct:correct,i:i});
+    });
+
+    var sc=paraScore(totalSpell,totalPunct,totalCase);
+    var msg=sc.score===100?'滿分！勁呀 🎉'
+           :(sc.score>=80?'好叻仔！差少少就滿分'
+           :(sc.score>=60?'唔錯，錯咗嘅字再默多次就記得'
+                         :'慢慢嚟，錯咗嘅字睇清楚再默一次'));
+    var detail=[];
+    if(totalSpell)detail.push('串錯字 '+totalSpell+' 個（−'+(totalSpell*PARA_PENALTY.spell)+'）');
+    if(totalPunct)detail.push('標點 '+totalPunct+' 個（−'+(totalPunct*PARA_PENALTY.punct)+'）');
+    if(totalCase)detail.push('大細楷 '+totalCase+' 個（−'+(totalCase*PARA_PENALTY.caseErr)+'）');
+
+    box.innerHTML=
+      '<div class="para-score">'+
+        '<div class="stamp"><span>'+sc.score+'分</span><small>DICTATION</small></div>'+
+        '<div class="para-msg">'+msg+'</div>'+
+        '<div class="para-detail">'+
+          perfect+' / '+paraList.length+' 句全對'+
+          (detail.length?'<br>'+detail.join('　·　'):'')+
+        '</div>'+
+      '</div>';
+
+    rows.forEach(function(o){
+      var r=o.r,correct=o.correct;
+      var clean=(!r.spell&&!r.punct&&!r.caseErr);
+      var bits=[];
+      if(r.spell)bits.push('串錯 '+r.spell);
+      if(r.punct)bits.push('標點 '+r.punct);
+      if(r.caseErr)bits.push('大細楷 '+r.caseErr);
       var d=document.createElement('div');
       d.className='sent';
-      var tag=(r.spell===0&&r.punct===0)
-        ? '<span style="color:var(--board-green);font-weight:700">全對 ✓</span>'
-        : '<span style="color:#7A8496;font-size:.8rem">串錯 '+r.spell+'　小錯 '+r.punct+'</span>';
       d.innerHTML=
-        '<div class="sent-head"><span class="sent-num">'+(i+1)+'</span>'+tag+'</div>'+
+        '<div class="sent-head"><span class="sent-num">'+(o.i+1)+'</span>'+
+          (clean?'<span style="color:var(--board-green);font-weight:700">全對 ✓</span>'
+                :'<span style="color:#7A8496;font-size:.8rem">'+bits.join('　')+'</span>')+
+        '</div>'+
         '<div class="mk">'+(r.html||'<span class="miss">（冇寫）</span>')+'</div>'+
-        ((r.spell||r.punct)?'<div class="mk-ans">正確：<b>'+escapeHtml(correct)+'</b></div>':'');
+        (clean?'':'<div class="mk-ans">正確：<b>'+escapeHtml(correct)+'</b></div>');
       box.appendChild(d);
     });
-    $('paraScoreLabel').textContent=perfect+' / '+paraList.length+' 句全對'+
-      (totalSpell||totalPunct?('　（串錯 '+totalSpell+'、小錯 '+totalPunct+'）'):'');
+
+    $('paraScoreLabel').textContent=sc.score+' 分';
     show('pararesult');
   }
 
@@ -1438,7 +1540,7 @@ I like fruit."></textarea>
       e.preventDefault();$('btnParaNext').click();
     }
   });
-  ['optChunk','optChunkGap','optRepeat','optParaRate','optPunct'].forEach(function(id){
+  ['optChunk','optChunkGap','optRepeat','optParaRate','optPunct','optPunctGap'].forEach(function(id){
     var el=$(id); if(el) el.addEventListener('change',function(){stopParaPlayback()});
   });
   $('btnParaNext').onclick=function(){

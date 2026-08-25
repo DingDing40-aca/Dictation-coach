@@ -193,6 +193,68 @@
   .topbar .count{font-size:.85rem;color:#7A8496}
   .hidden{display:none}
 
+  /* ---------- 段落默書（Plus） ---------- */
+  .plusbadge{display:inline-block;background:var(--board-green);color:#fff;
+             font-size:.66rem;font-weight:700;letter-spacing:.1em;
+             padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}
+  .sent{background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;
+        padding:10px 12px;margin-bottom:10px}
+  .sent.now{border-color:var(--board-green);box-shadow:0 0 0 2px rgba(46,110,82,.14)}
+  .sent-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .sent-num{width:22px;height:22px;border-radius:50%;background:var(--soft);
+            color:var(--ink);font-size:.76rem;flex:none;
+            display:inline-flex;align-items:center;justify-content:center}
+  .sent.now .sent-num{background:var(--board-green);color:#fff}
+  .sent-head button{background:#fff;border:1.5px solid #C9C6B8;border-radius:8px;
+                    padding:5px 10px;font-size:.82rem;color:var(--ink)}
+  .sent-head .sp{flex:1}
+  .sent input{width:100%;border:none;border-bottom:1.5px solid var(--rule);
+              background:transparent;padding:5px 2px;color:var(--ink);
+              font-family:"Comic Sans MS","Chalkboard SE","Segoe Print",cursive;
+              font-size:1.05rem;line-height:1.6}
+  .sent input:focus{outline:none;border-bottom-color:var(--board-green)}
+  .sent input::placeholder{color:#C8CFDB;font-family:inherit;font-size:.9rem}
+  .sent-prog{font-size:.8rem;color:var(--board-green);font-weight:700;
+             margin-top:6px;min-height:1.1em;letter-spacing:.02em}
+  .paraopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .checkline.tight{margin-top:10px}
+
+  /* 批改結果 */
+  .mk{margin-top:7px;font-size:.98rem;line-height:1.9;word-break:break-word}
+  .mk .ok{color:var(--ink)}
+  .mk .sp-err{color:var(--pen-red);font-weight:700;text-decoration:underline wavy}
+  .mk .pun-err{color:#C77A12;font-weight:700}
+  .mk .miss{color:var(--pen-red);font-weight:700;background:#FBE3E1;border-radius:3px;padding:0 3px}
+  .mk .extra{color:#9AA3B2;text-decoration:line-through}
+  .mk-ans{font-size:.86rem;color:#5C6675;margin-top:5px;line-height:1.7}
+  .mk-ans b{color:var(--board-green)}
+  .legend{font-size:.78rem;color:#7A8496;line-height:1.9;
+          background:var(--soft);border-radius:9px;padding:9px 12px;margin-bottom:14px}
+  .legend i{font-style:normal;font-weight:700}
+
+  /* Plus modal */
+  .modal{position:fixed;inset:0;background:rgba(32,48,79,.55);
+         display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+  /* ⚠️ 一定要有呢行。.hidden{display:none} 喺上面先聲明，
+     .modal 喺下面，兩者權重一樣 → 後者贏 → 加咗 hidden 都照顯示。
+     結果係：一 load 個頁就彈出嚟，而且撳「下次先」關唔到。 */
+  .modal.hidden{display:none}
+  .modal-box{background:var(--paper);border-radius:14px;padding:22px 20px;
+             max-width:400px;width:100%;box-shadow:var(--shadow)}
+  .modal-box h3{font-size:1.05rem;margin-bottom:8px}
+  .modal-box p{font-size:.87rem;color:#5C6675;line-height:1.65;margin-bottom:13px}
+  .modal-box input{width:100%;border:1.5px solid #D8D5C8;border-radius:10px;
+                   padding:12px;font-family:inherit;font-size:1rem;
+                   background:#fff;color:var(--ink);text-transform:uppercase}
+  .modal-box input:focus{outline:2px solid var(--board-green);outline-offset:1px}
+  .modal-msg{font-size:.85rem;margin-top:9px;min-height:1.1em;line-height:1.5}
+  .modal-msg.err{color:var(--pen-red)}
+  .buylink{display:block;text-align:center;margin-top:14px;padding:12px;
+           background:var(--board-green);color:#fff;border-radius:11px;
+           text-decoration:none;font-weight:600;font-size:.95rem;
+           box-shadow:0 3px 0 #1F5940}
+  .modal-box .ghost{display:block;margin:10px auto 0;font-size:.85rem}
+
   /* ---------- print sheet ----------
      用 border-bottom 畫線，唔用 CSS background gradient ——
      瀏覽器預設會剝走背景圖案先至列印，用背景畫線好多時印出嚟係白紙一張，
@@ -317,6 +379,10 @@ I like fruit."></textarea>
       <div class="btnrow">
         <button class="primary" id="btnStart">▶ 開始默書</button>
       </div>
+      <div class="btnrow">
+        <button class="secondary" id="btnPara" style="flex:1">📄 段落默書<span class="plusbadge">PLUS</span></button>
+      </div>
+      <div class="hint">段落默書會逐句慢慢讀，可以讀埋標點符號。貼一段短文入上面個框就用得。</div>
     </div>
 
     <div class="card">
@@ -368,6 +434,111 @@ I like fruit."></textarea>
       </div>
     </div>
   </section>
+
+  <!-- ============ 段落默書 ============ -->
+  <section id="viewPara" class="hidden">
+    <div class="card">
+      <div class="topbar">
+        <button class="ghost" id="btnParaQuit">← 返回設定</button>
+        <span class="count" id="paraCount"></span>
+      </div>
+
+      <div class="paraopts">
+        <div class="opt">
+          <label>讀字速度</label>
+          <select id="optParaRate">
+            <option value="0.5">超慢（逐隻字咁讀）</option>
+            <option value="0.6" selected>好慢</option>
+            <option value="0.75">慢</option>
+            <option value="0.9">正常</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>每次讀幾多個字</label>
+          <select id="optChunk">
+            <option value="0">成句一次過</option>
+            <option value="2">2 個字</option>
+            <option value="3" selected>3 個字</option>
+            <option value="4">4 個字</option>
+            <option value="5">5 個字</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>每組之間停頓</label>
+          <select id="optChunkGap">
+            <option value="2000">2 秒</option>
+            <option value="3000" selected>3 秒</option>
+            <option value="5000">5 秒</option>
+            <option value="8000">8 秒</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>每組讀幾多次</label>
+          <select id="optRepeat">
+            <option value="1">1 次</option>
+            <option value="2" selected>2 次</option>
+            <option value="3">3 次</option>
+          </select>
+        </div>
+      </div>
+      <label class="checkline tight">
+        <input type="checkbox" id="optPunct" checked> 讀埋標點符號（comma、full stop）
+      </label>
+      <div class="hint" id="voiceTip"></div>
+
+      <div class="nosound hidden" id="paraNoSound">
+        🔇 <b>冇聲？</b>你可能喺 Facebook／IG 內置瀏覽器入面開緊。<br>
+        撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>，用 Safari 或 Chrome 開就會有聲。
+      </div>
+
+      <div id="sentList" style="margin-top:14px"></div>
+
+      <div class="btnrow">
+        <button class="primary" id="btnParaNext">▶ 讀下一句</button>
+        <button class="secondary" id="btnParaStop">⏹ 停</button>
+      </div>
+      <div class="btnrow">
+        <button class="secondary" id="btnParaCheck" style="flex:1">全部對答案 ✓</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 段落成績 ============ -->
+  <section id="viewParaResult" class="hidden">
+    <div class="card">
+      <div class="topbar">
+        <button class="ghost" id="btnParaBack">← 返回設定</button>
+        <span class="count" id="paraScoreLabel"></span>
+      </div>
+      <div class="legend">
+        <i style="color:#D8453C">串錯字</i>（紅色底波浪）　·　
+        <i style="color:#C77A12">標點／大細楷</i>（橙色）　·　
+        <i style="color:#D8453C">漏咗</i>（紅底）　·　
+        <i style="color:#9AA3B2">多咗</i>（刪除線）
+      </div>
+      <div id="paraMarks"></div>
+      <div class="btnrow">
+        <button class="primary" id="btnParaRetry">再默一次</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Plus 解鎖 ============ -->
+  <div class="modal hidden" id="plusModal">
+    <div class="modal-box">
+      <h3>段落默書係 貼堂 Plus 功能</h3>
+      <p id="plusIntro">輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip
+         會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。</p>
+      <input type="text" id="plusInput" placeholder="TT-XXXX-XXXX" autocomplete="off"
+             autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <div class="modal-msg" id="plusMsg"></div>
+      <div class="btnrow">
+        <button class="primary" id="btnPlusGo" style="flex:1">解鎖</button>
+      </div>
+      <a class="buylink" id="plusBuy" href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">未有密碼？撳呢度訂閱 Plus</a>
+      <button class="ghost" id="btnPlusClose">下次先</button>
+    </div>
+  </div>
 
   <!-- ============ RESULT ============ -->
   <section id="viewResult" class="hidden">
@@ -431,7 +602,8 @@ I like fruit."></textarea>
   }
 
   var $=function(id){return document.getElementById(id)};
-  var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult')};
+  var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult'),
+             para:$('viewPara'),pararesult:$('viewParaResult')};
   function show(name){for(var k in views){views[k].classList.toggle('hidden',k!==name)}window.scrollTo(0,0)}
 
   /* ---------- word list ---------- */
@@ -445,18 +617,77 @@ I like fruit."></textarea>
 
   /* ---------- speech ---------- */
   var voices=[];
+  /* 只留四把實測用得嘅聲（連佢哋嘅 Premium／Enhanced 版本）。
+     系統會列出幾十把聲，大部分讀初小英文都糊，揀多咗只會嘥家長時間。
+     ⚠️ 只列 getVoices() 交返嚟嗰啲——未落載嘅根本唔會出現。 */
+  /* ⚠️ iOS 嘅 Web Speech API 只交出「原廠預載」嘅聲。
+     喺 設定→輔助使用→朗讀內容→語音 落載嘅 Enhanced／Premium，
+     網頁一律攞唔到（Apple 官方論壇證實係 by design，唔係 bug）。
+     所以 Ava／Serena／Lee 喺 iPhone 上面點落載都唔會出現。
+     Karen／Samantha 係 iOS 原廠預載又真係讀得清嘅，一定要留，
+     唔係 iPhone 用戶就淨返一把 Daniel。
+     Ava／Serena／Lee 留住係為咗 Mac、Windows、Android，嗰邊攞得到。 */
+  var VOICE_OK=['ava','daniel','serena','lee','karen','samantha'];
+  function allowedVoice(v){
+    if(!v||!v.lang||v.lang.indexOf('en')!==0)return false;
+    var n=(v.name||'').toLowerCase();
+    for(var i=0;i<VOICE_OK.length;i++){
+      // 要成個字咁 match，唔係 substring：'lee' 唔可以撞中 'Kathleen'
+      if(new RegExp('(^|[^a-z])'+VOICE_OK[i]+'([^a-z]|$)').test(n))return true;
+    }
+    return false;
+  }
+  function voiceTier(v){
+    var n=(v.name||'').toLowerCase();
+    if(n.indexOf('premium')>=0)return 3;
+    if(n.indexOf('enhanced')>=0)return 2;
+    return 1;
+  }
+  function voiceLabel(v){
+    var t=voiceTier(v);
+    var tag=t===3?'　⭐ Premium':(t===2?'　✦ Enhanced':'');
+    var base=(v.name||'').replace(/\s*\((premium|enhanced)\)\s*/i,'').trim();
+    return base+'（'+v.lang+'）'+tag;
+  }
+  var voiceFellBack=false;
   function fillVoiceList(){
     var sel=$('optVoice');if(!sel)return;
     var cur=sel.value||savedVoice();
+    var pool=voices.filter(allowedVoice);
+    voiceFellBack=false;
+    if(!pool.length){          // 一把都冇就唔可以留個空掣，回落所有英文聲
+      pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
+      voiceFellBack=true;
+    }
+    pool.sort(function(a,b){
+      var d=voiceTier(b)-voiceTier(a);
+      return d?d:(a.name||'').localeCompare(b.name||'');
+    });
     sel.innerHTML='<option value="">自動揀</option>';
-    voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0})
-      .forEach(function(v){
-        var o=document.createElement('option');
-        o.value=v.name;o.textContent=v.name+' ('+v.lang+')';
-        sel.appendChild(o);
-      });
+    var seen={};
+    pool.forEach(function(v){
+      // iOS 會交返兩把都叫 "Daniel" 嘅聲（原廠 + 高音質），名一模一樣。
+      // 用名做 value 就分唔開，揀第二個實際上會攞返第一個。加序號做 key。
+      var base=v.name||'';
+      seen[base]=(seen[base]||0)+1;
+      var o=document.createElement('option');
+      o.value=base+'##'+seen[base];
+      o.textContent=voiceLabel(v)+(seen[base]>1?'　（第 '+seen[base]+' 把）':'');
+      sel.appendChild(o);
+    });
     sel.value=cur;
     if(sel.value!==cur) sel.value='';   // 呢部機冇咗嗰把聲，回落自動揀
+  }
+  /* 由 "Daniel##2" 呢種 key 揾返實際嗰個 voice object */
+  function voiceByKey(key){
+    if(!key)return null;
+    var parts=key.split('##'),nm=parts[0],nth=parseInt(parts[1],10)||1,c=0;
+    var pool=voices.filter(allowedVoice);
+    if(!pool.length)pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
+    for(var i=0;i<pool.length;i++){
+      if((pool[i].name||'')===nm){c++;if(c===nth)return pool[i]}
+    }
+    return null;
   }
   function loadVoices(){voices=window.speechSynthesis?speechSynthesis.getVoices():[];fillVoiceList()}
   if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
@@ -464,20 +695,24 @@ I like fruit."></textarea>
   function pickVoice(){
     var chosen=$('optVoice')?$('optVoice').value:'';
     if(chosen){
-      var m=voices.filter(function(v){return v.name===chosen});
-      if(m.length)return m[0];
+      var hit=voiceByKey(chosen);
+      if(hit)return hit;
     }
-    // 唔再 en-US 優先：實測顯示清晰度比口音重要，Karen(en-AU) 目前最清
-    var pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
+    // 自動揀都只喺白名單入面揀，同個掣顯示嘅嘢一致
+    var pool=voices.filter(allowedVoice);
+    if(!pool.length) pool=voices.filter(function(v){return v.lang&&v.lang.indexOf('en')===0});
     if(!pool.length) return null;
     var score=function(v){
       var n=(v.name||'').toLowerCase(),s=0;
-      if(n.indexOf('karen')>=0)s+=6;
-      if(n.indexOf('natural')>=0)s+=5;
-      if(n.indexOf('enhanced')>=0||n.indexOf('premium')>=0)s+=4;
-      if(n.indexOf('siri')>=0)s+=4;
-      if(n.indexOf('google')>=0)s+=3;
-      if(n.indexOf('samantha')>=0||n.indexOf('ava')>=0||n.indexOf('allison')>=0)s+=2;
+      if(n.indexOf('premium')>=0)s+=8;        // Premium 係 Apple 神經網絡聲，最接近 Siri
+      else if(n.indexOf('enhanced')>=0)s+=5;
+      if(/(^|[^a-z])serena([^a-z]|$)/.test(n))s+=4;   // en-GB，同香港學校教嘅英式一致
+      if(/(^|[^a-z])karen([^a-z]|$)/.test(n))s+=4;    // 交接文件第5節：實測最清
+      if(/(^|[^a-z])ava([^a-z]|$)/.test(n))s+=3;
+      if(/(^|[^a-z])samantha([^a-z]|$)/.test(n))s+=2;
+      if(/(^|[^a-z])daniel([^a-z]|$)/.test(n))s+=2;
+      if(/(^|[^a-z])lee([^a-z]|$)/.test(n))s+=1;
+      if(n.indexOf('natural')>=0||n.indexOf('neural')>=0)s+=3;
       if(v.localService===false)s+=1;
       return s;
     };
@@ -719,6 +954,531 @@ I like fruit."></textarea>
     show('result');
   }
   function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+  /* ==================================================================
+     段落默書（Plus）
+     ------------------------------------------------------------------
+     鎖：唔用 Payhip licence key API —— Payhip 嘅 licence key 功能只出現喺
+     Digital Product，而 recurring 月費只支援 Membership，兩者夾唔埋。
+     改用「每月密碼」：密碼寫喺 Payhip 會員區嘅帖文入面（要真登入先睇到，
+     嗰度先係真正把關嘅地方），呢度淨係核對。
+     密碼用 SHA-256 存 hash，唔存明文 —— view source 見到 hash 都用唔到。
+     ⚠️ 已知限制：識用 devtools 嘅人照樣繞得過。段落默書零邊際成本，
+        被繞過嘅代價封頂喺「嗰個人冇畀錢用咗」，唔會蝕錢，接受呢個風險。
+     ================================================================== */
+  var PLUS_HASHES=[
+    '0e4f13335e9efef548ad34bfac9f47021bcb869257e05480a370b8ee70df6841', /* 9月 */
+    '48052dbbc5c0a27494706aee3d66e2da6e21309bd094abfc29f3e8a17e1e68c6', /* 10月 */
+    'f8488562855c01f8689347e201c00a69d38b0a16041f9748a7fcb79d0907d61c', /* 11月 */
+    '500630788b792c10d7c2fdae6838daf680e04ed75fe44869cd1e54e7e094ddc6', /* 12月 */
+    'fc28ac60daa3c0f27d488086397ddf4bb5d336ed86f3d321c56e743435f7e4ec', /* 1月 */
+    '8dc223571ba106da7f79b2915e8178dd310ce0315dd2f98333fe638917da52c3', /* 2月 */
+    '9d94786a5b80945bc982ed13a54acbe9b8a6cbc7f384d7f2566a69ef62e0d62d', /* 3月 */
+    '26fa6b41520666528ef3c1aea2b87efd0769d99754351b94cc4bda72d551276a', /* 4月 */
+    'bc477a8445b6716ba7b5b7c9ec3d30fbbe328dee0700ae4a6553c96c9f0c92a0', /* 5月 */
+    'b4ec1a7839580a6c696b4a4058414c0c4f4f2eb34ff270800e5735576575b07d', /* 6月 */
+    'a4168e8e4fb145e1822efc498080f1a6ba16458e7e6cf18b129c04fdacd6e79c', /* 7月 */
+    'fc59cd409853a6c5f2ac14013ffb76ccc7981a8650cf8d342f3738fa823777c9'  /* 8月 */
+  ];
+
+  /* SHA-256，純 JS 同步實作。
+     ⚠️ 唔用 crypto.subtle：佢淨係喺 secure context（https）先存在。
+        用 file:// 開個檔、或者喺 FB／IG 內置瀏覽器開，crypto.subtle 係 undefined
+        或者會 hang，個「檢查緊…」就會永遠轉落去。呢個自己計，去到邊都行得。 */
+  var SHA_K=[
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+
+  function sha256Hex(msg){
+    function rotr(x,n){return (x>>>n)|(x<<(32-n))}
+    var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
+           0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    var bytes=[],i,c;
+    for(i=0;i<msg.length;i++){
+      c=msg.charCodeAt(i);
+      if(c<0x80)bytes.push(c);
+      else if(c<0x800)bytes.push(0xc0|(c>>6),0x80|(c&63));
+      else if(c<0xd800||c>=0xe000)bytes.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+      else{i++;var cp=0x10000+(((c&0x3ff)<<10)|(msg.charCodeAt(i)&0x3ff));
+        bytes.push(0xf0|(cp>>18),0x80|((cp>>12)&63),0x80|((cp>>6)&63),0x80|(cp&63));}
+    }
+    var bitLen=bytes.length*8;
+    bytes.push(0x80);
+    while(bytes.length%64!==56)bytes.push(0);
+    bytes.push(0,0,0,0,(bitLen>>>24)&255,(bitLen>>>16)&255,(bitLen>>>8)&255,bitLen&255);
+    var w=new Array(64),t;
+    for(i=0;i<bytes.length;i+=64){
+      for(t=0;t<16;t++){
+        w[t]=(bytes[i+t*4]<<24)|(bytes[i+t*4+1]<<16)|(bytes[i+t*4+2]<<8)|bytes[i+t*4+3];
+      }
+      for(t=16;t<64;t++){
+        var s0=rotr(w[t-15],7)^rotr(w[t-15],18)^(w[t-15]>>>3);
+        var s1=rotr(w[t-2],17)^rotr(w[t-2],19)^(w[t-2]>>>10);
+        w[t]=(w[t-16]+s0+w[t-7]+s1)|0;
+      }
+      var a=H[0],b=H[1],cc=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+      for(t=0;t<64;t++){
+        var S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+        var ch=(e&f)^((~e)&g);
+        var t1=(h+S1+ch+SHA_K[t]+w[t])|0;
+        var S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+        var mj=(a&b)^(a&cc)^(b&cc);
+        var t2=(S0+mj)|0;
+        h=g;g=f;f=e;e=(d+t1)|0;d=cc;cc=b;b=a;a=(t1+t2)|0;
+      }
+      H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+cc)|0;H[3]=(H[3]+d)|0;
+      H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;
+    }
+    var out='';
+    for(i=0;i<8;i++)out+=('00000000'+(H[i]>>>0).toString(16)).slice(-8);
+    return out;
+  }
+  /* ⚠️ 解鎖有期限（35 日），呢個係刻意嘅。
+     原本 grill-me 定案係「入一次就永遠記住」，但嗰時個鎖係 Payhip licence key
+     ——取消訂閱 Payhip 會自動 disable 條 key。而家改用每月密碼，
+     如果永遠記住，取消咗訂閱嘅人喺嗰部機就永遠用得，每月換密碼變成完全冇意義。
+     35 日 = 每個月要返 Payhip 攞返新密碼一次；反正每星期都要去攞詞表，
+     順手嘅事。想改返永久：DAYS 設做一個好大嘅數就得。 */
+  var PLUS_DAYS=35;
+  function plusState(){
+    try{
+      var raw=localStorage.getItem('dc_plus');
+      if(!raw)return null;
+      if(raw==='1'){            // 舊格式，當今日先解鎖，唔好即刻踢走現有用戶
+        var o={h:'',t:Date.now()};
+        localStorage.setItem('dc_plus',JSON.stringify(o));
+        return o;
+      }
+      return JSON.parse(raw);
+    }catch(e){return null}
+  }
+  function plusUnlocked(){
+    var st=plusState();
+    if(!st||!st.t)return false;
+    return (Date.now()-st.t) < PLUS_DAYS*24*60*60*1000;
+  }
+  function setPlusUnlocked(h){
+    try{localStorage.setItem('dc_plus',JSON.stringify({h:h||'',t:Date.now()}))}catch(e){}
+  }
+  function plusExpired(){
+    var st=plusState();
+    return !!(st&&st.t&&(Date.now()-st.t)>=PLUS_DAYS*24*60*60*1000);
+  }
+
+  function openPlusModal(){
+    var intro=$('plusIntro');
+    if(intro){
+      intro.textContent=plusExpired()
+        ? '新一個月喇，要輸入返今個月嘅密碼。喺你 Payhip 會員區嘅帖文度攞，同每星期嘅詞表擺喺一齊。'
+        : '輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip 會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。';
+    }
+    $('plusMsg').textContent='';$('plusMsg').className='modal-msg';
+    $('plusInput').value='';
+    $('plusModal').classList.remove('hidden');
+    setTimeout(function(){$('plusInput').focus()},50);
+  }
+  function closePlusModal(){$('plusModal').classList.add('hidden')}
+
+  /* ---------- 斬句 ---------- */
+  function splitSentences(t){
+    var s=(t||'').replace(/\s+/g,' ').trim();
+    if(!s)return [];
+    var m=s.match(/[^.!?。！？]+[.!?。！？]*/g)||[];
+    return m.map(function(x){return x.trim()}).filter(Boolean);
+  }
+
+  /* ---------- 讀標點 ---------- */
+  var PUNCT_WORDS=[
+    [/,/g,' comma '],
+    [/;/g,' semicolon '],
+    [/:/g,' colon '],
+    [/\?/g,' question mark '],
+    [/!/g,' exclamation mark '],
+    [/\./g,' full stop ']
+  ];
+  function withPunctSpoken(s){
+    var t=' '+s+' ';
+    // 唔掂 apostrophe，否則 don't 會讀成 don apostrophe t
+    for(var i=0;i<PUNCT_WORDS.length;i++){t=t.replace(PUNCT_WORDS[i][0],PUNCT_WORDS[i][1])}
+    return t.replace(/\s+/g,' ').trim();
+  }
+
+  /* ---------- 段落狀態 ---------- */
+  var paraList=[],paraIdx=0;
+
+  /* ---------- 段落預錄音檔（Plus 每週短文用） ----------
+     段落默書嘅文字係用戶自己貼嘅，冇可能預先錄晒。但**你每星期出嘅短文
+     係你自己寫嘅**，所以嗰啲可以事先用 edge-tts 生成好，擺喺 ./audio/para/。
+     搵到就播靚聲音檔，搵唔到就 fallback 返瀏覽器 TTS（家長貼自己嘅課文）。
+     檔名 = 頭 24 個字元嘅 slug + sha256 頭 8 位，生成腳本要用同一條公式。
+
+     ⚠️⚠️ 兩個資料夾，永遠唔可以撈埋，唔可以用同一條 slug 公式：
+
+       audio/{wordSlug}.mp3       —— 單詞默書專用。內容係成句
+                                      「The word is: X.」。命名淨係將個字
+                                      轉做 kebab-case（wordSlug()），冇 hash。
+                                      呢批檔案已經生成緊，唔好郁。
+
+       audio/para/{paraSlug}.mp3  —— 段落／分組朗讀專用。內容係「裸」文字
+                                      （唔加「The word is」），可以係一個字、
+                                      一組詞、或成句，睇分組設定而定。命名
+                                      用 paraSlug()：可讀前綴 + sha256 頭 8
+                                      位，唔會同上面嗰個撞。
+
+     將來寫生成腳本，記住：裸字／裸詞組音檔一定要存入 audio/para/，用
+     paraSlug()，唔可以圖方便攞 wordSlug() 存入 audio/ ——嗰度嘅檔名已經
+     俾單詞默書用緊，撞咗就會靜靜地覆蓋單詞嗰個「The word is: X.」錄音，
+     而你完全唔會有任何錯誤提示，只會發現單詞默書幾時開始讀錯咗。 */
+  var PARA_AUDIO_BASE='./audio/para/';
+  var paraMissing={};
+
+  function paraSlug(s,withPunct){
+    var base=(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')
+              .replace(/^-+|-+$/g,'').slice(0,24).replace(/-+$/,'');
+    return base+'-'+sha256Hex(s||'').slice(0,8)+(withPunct?'-p':'');
+  }
+
+  function playParaAudio(raw,withPunct,slow,run,onFail,onDone){
+    var slug=paraSlug(raw,withPunct);
+    if(paraMissing[slug]){onFail();return}
+    stopAudio();
+    var a=new Audio(PARA_AUDIO_BASE+slug+'.mp3');
+    a.playbackRate=slow?0.75:1;
+    curAudio=a;
+    var settled=false;
+    function fail(){
+      if(settled)return;settled=true;
+      paraMissing[slug]=true;curAudio=null;
+      if(run===paraRun)onFail();
+    }
+    a.onplaying=function(){settled=true;hideNoSound();$('paraNoSound').classList.add('hidden')};
+    a.onended=function(){curAudio=null;if(run===paraRun&&onDone)onDone()};
+    a.onerror=fail;
+    a.play().catch(fail);
+    setTimeout(function(){if(!settled)fail()},1500);
+  }
+
+  /* ---------- 分組朗讀：讀 N 個字 → 停 → 再讀一次 → 落下一組 ----------
+     瀏覽器 TTS 讀成句係讀得快又冧埋一舊，初小跟唔到。
+     解法唔係換引擎（換唔到，見下面 showVoiceTip），係改變節奏：
+     細組、慢速、重複、中間留夠時間寫。 */
+  function chunkSentence(s,n){
+    var toks=tokenize(s),out=[],cur=[];
+    toks.forEach(function(w){
+      cur.push(w);
+      // 撞到標點就即刻斷組——「有標點符號分隔就當一句」
+      if(cur.length>=n||/[,;:.!?。，；：！？]$/.test(w)){out.push(cur.join(' '));cur=[]}
+    });
+    if(cur.length)out.push(cur.join(' '));
+    return out;
+  }
+
+  var paraRun=0,paraTimer=null;
+  function setProg(i,txt){
+    for(var n=0;n<paraList.length;n++){
+      var el=document.querySelector('[data-prog="'+n+'"]');
+      if(el)el.textContent=(n===i)?txt:'';
+    }
+  }
+  function stopParaPlayback(){
+    paraRun++;
+    if(paraTimer){clearTimeout(paraTimer);paraTimer=null}
+    stopAudio();
+    if(window.speechSynthesis){try{speechSynthesis.cancel()}catch(e){}}
+    setProg(-1,'');
+  }
+
+  function speakOne(txt,rate,run,done){
+    if(!window.speechSynthesis){$('paraNoSound').classList.remove('hidden');done();return}
+    try{speechSynthesis.cancel()}catch(e){}
+    var fired=false;
+    function fin(){if(fired||run!==paraRun)return;fired=true;done()}
+    // cancel() 之後即刻 speak 會食咗開頭，要等一陣（同 speakSequence 一樣嘅教訓）
+    paraTimer=setTimeout(function(){
+      if(run!==paraRun)return;
+      var u=new SpeechSynthesisUtterance(txt);
+      var v=pickVoice();
+      if(v){u.voice=v;u.lang=v.lang||'en-US'}else{u.lang='en-US'}
+      u.rate=rate;u.pitch=1;
+      u.onstart=function(){$('paraNoSound').classList.add('hidden')};
+      u.onend=fin;u.onerror=fin;
+      try{speechSynthesis.resume()}catch(e){}
+      speechSynthesis.speak(u);
+      // 守門狗：有啲引擎唔會 fire onend，唔可以就咁卡死
+      setTimeout(fin,Math.max(3500,txt.length*280));
+    },90);
+  }
+
+  function speakSentence(i,slow){
+    if(i<0||i>=paraList.length)return;
+    stopParaPlayback();
+    var run=paraRun;
+    var raw=paraList[i];
+    var wp=$('optPunct').checked;
+    var rate=parseFloat($('optParaRate').value)||0.6;
+    if(slow)rate=rate-0.12;
+    rate=Math.max(0.4,Math.min(1.2,rate));
+    var n=parseInt($('optChunk').value,10)||0;
+
+    // 呢個先係播一段文字嘅唯一入口：一律先試 audio/para/ 有冇預錄音檔，
+    // 冇就 fallback TTS。單字模式（n===0）同分組模式（n>0）以前用緊
+    // 兩條唔同嘅路，分組嗰條漏咗接 playParaAudio ——即係之前生成幾多
+    // 音檔都播唔到，因為分組先係預設同大部分人用緊嘅模式。
+    function playChunk(text,onDone){
+      if(run!==paraRun)return;
+      playParaAudio(text,wp,slow,run,function(){          // onFail -> TTS
+        if(run!==paraRun)return;
+        speakOne(wp?withPunctSpoken(text):text,rate,run,onDone);
+      },onDone);                                            // onDone -> 音檔播完
+    }
+
+    if(n===0){                              // 成句一次過
+      playChunk(raw,function(){setProg(-1,'')});
+      return;
+    }
+
+    var chunks=chunkSentence(raw,n);
+    var reps=parseInt($('optRepeat').value,10)||2;
+    var gap=parseInt($('optChunkGap').value,10)||3000;
+    var seq=[],k=0;
+    chunks.forEach(function(c,ci){
+      for(var r=1;r<=reps;r++)seq.push({t:c,ci:ci,r:r});
+    });
+    function step(){
+      if(run!==paraRun)return;
+      if(k>=seq.length){setProg(i,'✓ 讀完');
+        paraTimer=setTimeout(function(){if(run===paraRun)setProg(-1,'')},1500);return}
+      var it=seq[k++];
+      setProg(i,'🔊 第 '+(it.ci+1)+'／'+chunks.length+' 組　第 '+it.r+' 次');
+      playChunk(it.t,function(){
+        if(run!==paraRun)return;
+        setProg(i,'✍️ 寫低…（'+Math.round(gap/1000)+' 秒）');
+        paraTimer=setTimeout(step,gap);
+      });
+    }
+    step();
+  }
+
+  function renderSentList(){
+    var box=$('sentList');box.innerHTML='';
+    paraList.forEach(function(s,i){
+      var d=document.createElement('div');
+      d.className='sent'+(i===paraIdx?' now':'');
+      d.innerHTML=
+        '<div class="sent-head">'+
+          '<span class="sent-num">'+(i+1)+'</span>'+
+          '<button type="button" data-play="'+i+'">🔊 讀</button>'+
+          '<button type="button" data-slow="'+i+'">🐢 慢啲</button>'+
+          '<span class="sp"></span>'+
+        '</div>'+
+        '<input type="text" data-ans="'+i+'" autocomplete="off" autocapitalize="sentences" '+
+          'autocorrect="off" spellcheck="false" placeholder="聽完喺呢度寫低成句…">'+
+        '<div class="sent-prog" data-prog="'+i+'"></div>';
+      box.appendChild(d);
+    });
+    $('paraCount').textContent='第 '+(paraIdx+1)+' / '+paraList.length+' 句';
+    $('btnParaNext').textContent=(paraIdx+1>=paraList.length)?'🔊 再讀最後一句':'▶ 讀下一句';
+  }
+
+  function paraAnswers(){
+    return paraList.map(function(_,i){
+      var el=document.querySelector('[data-ans="'+i+'"]');
+      return el?el.value:'';
+    });
+  }
+  function setParaFocus(i){
+    paraIdx=Math.max(0,Math.min(i,paraList.length-1));
+    var box=$('sentList');
+    Array.prototype.forEach.call(box.children,function(c,n){
+      c.classList.toggle('now',n===paraIdx);
+    });
+    $('paraCount').textContent='第 '+(paraIdx+1)+' / '+paraList.length+' 句';
+    $('btnParaNext').textContent=(paraIdx+1>=paraList.length)?'🔊 再讀最後一句':'▶ 讀下一句';
+    var inp=document.querySelector('[data-ans="'+paraIdx+'"]');
+    if(inp){inp.focus();inp.scrollIntoView({block:'center',behavior:'smooth'})}
+  }
+
+  function startPara(){
+    var raw=$('wordInput').value;
+    paraList=splitSentences(raw);
+    if(!paraList.length){alert('請先喺上面貼一段英文短文');return}
+    paraIdx=0;
+    if(isInAppBrowser())$('paraNoSound').classList.remove('hidden');
+    show('para');
+    renderSentList();
+    showVoiceTip();
+    setTimeout(function(){speakSentence(0,false)},800);
+  }
+
+  /* ---------- 批改：逐字對齊 + 分類錯誤 ---------- */
+  function tokenize(s){return (s||'').trim().split(/\s+/).filter(Boolean)}
+  function coreOf(w){return (w||'').toLowerCase().replace(/[^a-z0-9']/g,'')}
+  function stripPunct(w){return (w||'').replace(/[^A-Za-z0-9']/g,'')}
+
+  /* 用編輯距離對齊（唔用 LCS）：串錯一個字要算「一個代入」，
+     唔可以算成「漏咗一個 + 多咗一個」兩個錯。 */
+  function alignTokens(a,b){
+    var n=a.length,m=b.length,i,j;
+    var dp=[];
+    for(i=0;i<=n;i++){dp.push([]);for(j=0;j<=m;j++)dp[i].push(0)}
+    for(i=0;i<=n;i++)dp[i][0]=i;
+    for(j=0;j<=m;j++)dp[0][j]=j;
+    for(i=1;i<=n;i++)for(j=1;j<=m;j++){
+      var c=(coreOf(a[i-1])===coreOf(b[j-1]))?0:1;
+      dp[i][j]=Math.min(dp[i-1][j-1]+c,dp[i-1][j]+1,dp[i][j-1]+1);
+    }
+    var out=[];i=n;j=m;
+    while(i>0&&j>0){
+      var cost=(coreOf(a[i-1])===coreOf(b[j-1]))?0:1;
+      if(dp[i][j]===dp[i-1][j-1]+cost){out.unshift([a[i-1],b[j-1]]);i--;j--}
+      else if(dp[i][j]===dp[i-1][j]+1){out.unshift([a[i-1],null]);i--}
+      else{out.unshift([null,b[j-1]]);j--}
+    }
+    while(i>0){out.unshift([a[i-1],null]);i--}
+    while(j>0){out.unshift([null,b[j-1]]);j--}
+    return out;
+  }
+
+  /* 回傳 {html, spell, punct} —— 串錯字同小錯分開計 */
+  function markSentence(correct,student){
+    var pairs=alignTokens(tokenize(correct),tokenize(student));
+    var html='',spell=0,punct=0;
+    pairs.forEach(function(p){
+      var c=p[0],s=p[1];
+      if(c===null){html+='<span class="extra">'+escapeHtml(s)+'</span> ';spell++;return}
+      if(s===null){html+='<span class="miss">'+escapeHtml(c)+'</span> ';spell++;return}
+      if(c===s){html+='<span class="ok">'+escapeHtml(s)+'</span> ';return}
+      var caseOnly=(c.toLowerCase()===s.toLowerCase());
+      var punctOnly=(stripPunct(c)===stripPunct(s));
+      var bothMinor=(stripPunct(c).toLowerCase()===stripPunct(s).toLowerCase());
+      if(caseOnly||punctOnly||bothMinor){
+        html+='<span class="pun-err" title="'+escapeHtml(c)+'">'+escapeHtml(s)+'</span> ';
+        punct++;
+      }else{
+        html+='<span class="sp-err">'+escapeHtml(s)+'</span> ';
+        spell++;
+      }
+    });
+    return {html:html.trim(),spell:spell,punct:punct};
+  }
+
+  function showParaResult(){
+    var ans=paraAnswers();
+    var box=$('paraMarks');box.innerHTML='';
+    var totalSpell=0,totalPunct=0,perfect=0;
+    paraList.forEach(function(correct,i){
+      var r=markSentence(correct,ans[i]);
+      totalSpell+=r.spell;totalPunct+=r.punct;
+      if(r.spell===0&&r.punct===0)perfect++;
+      var d=document.createElement('div');
+      d.className='sent';
+      var tag=(r.spell===0&&r.punct===0)
+        ? '<span style="color:var(--board-green);font-weight:700">全對 ✓</span>'
+        : '<span style="color:#7A8496;font-size:.8rem">串錯 '+r.spell+'　小錯 '+r.punct+'</span>';
+      d.innerHTML=
+        '<div class="sent-head"><span class="sent-num">'+(i+1)+'</span>'+tag+'</div>'+
+        '<div class="mk">'+(r.html||'<span class="miss">（冇寫）</span>')+'</div>'+
+        ((r.spell||r.punct)?'<div class="mk-ans">正確：<b>'+escapeHtml(correct)+'</b></div>':'');
+      box.appendChild(d);
+    });
+    $('paraScoreLabel').textContent=perfect+' / '+paraList.length+' 句全對'+
+      (totalSpell||totalPunct?('　（串錯 '+totalSpell+'、小錯 '+totalPunct+'）'):'');
+    show('pararesult');
+  }
+
+  /* ---------- 段落 wire up ---------- */
+  $('btnPara').onclick=function(){
+    unlockSpeech();unlockAudio();
+    if(!splitSentences($('wordInput').value).length){
+      alert('請先喺上面個框貼一段英文短文（例如：The cat sat on the mat. It was happy.）');
+      return;
+    }
+    if(plusUnlocked()){startPara();return}
+    openPlusModal();
+  };
+  $('btnPlusClose').onclick=closePlusModal;
+  $('plusModal').addEventListener('click',function(e){
+    if(e.target===this)closePlusModal();   // 撳背景都關得到
+  });
+  $('btnPlusGo').onclick=function(){
+    var v=($('plusInput').value||'').trim().toUpperCase();
+    var msg=$('plusMsg');
+    if(!v){msg.className='modal-msg err';msg.textContent='請輸入密碼';return}
+    var hv=sha256Hex(v);
+    if(PLUS_HASHES.indexOf(hv)>=0){
+      setPlusUnlocked(hv);closePlusModal();startPara();
+    }else{
+      msg.className='modal-msg err';
+      msg.textContent='呢個密碼唔啱，檢查下有冇打錯？密碼喺 Payhip 會員區帖文入面。';
+    }
+  };
+  $('plusInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter')$('btnPlusGo').click();
+  });
+
+  $('sentList').addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('button'):null;
+    if(!b)return;
+    unlockSpeech();
+    if(b.dataset.play!==undefined){setParaFocus(+b.dataset.play);speakSentence(+b.dataset.play,false)}
+    if(b.dataset.slow!==undefined){setParaFocus(+b.dataset.slow);speakSentence(+b.dataset.slow,true)}
+  });
+  $('sentList').addEventListener('focusin',function(e){
+    var i=e.target.dataset?e.target.dataset.ans:null;
+    if(i!==undefined&&i!==null)setParaFocus(+i);
+  });
+  $('sentList').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.ans!==undefined){
+      e.preventDefault();$('btnParaNext').click();
+    }
+  });
+  ['optChunk','optChunkGap','optRepeat','optParaRate','optPunct'].forEach(function(id){
+    var el=$(id); if(el) el.addEventListener('change',function(){stopParaPlayback()});
+  });
+  $('btnParaNext').onclick=function(){
+    unlockSpeech();
+    if(paraIdx+1>=paraList.length){speakSentence(paraIdx,false);return}
+    setParaFocus(paraIdx+1);
+    speakSentence(paraIdx,false);
+  };
+  $('btnParaStop').onclick=function(){stopParaPlayback()};
+  $('btnParaCheck').onclick=function(){
+    stopParaPlayback();
+    showParaResult();
+  };
+
+  /* 部機把聲靚唔靚，前端改唔到。唯一真正有效嘅係叫用戶裝返把好聲，
+     所以按平台畀返正確嘅指示路徑。 */
+  function showVoiceTip(){
+    var el=$('voiceTip');if(!el)return;
+    var v=pickVoice(),nm=v?(v.name||''):'';
+    var n=voices.filter(allowedVoice).length;
+    var ua=navigator.userAgent||'';
+    if(!nm){el.textContent='暫時搵唔到英文語音，撳一次「開始默書」之後再返嚟睇。';return}
+    if(/iPhone|iPad|iPod/i.test(ua)){
+      // ⚠️ 唔好再叫 iPhone 用戶去落載 Enhanced／Premium：
+      //    Apple 唔會將落載嘅聲交俾網頁，叫佢哋去落載係嘥佢哋時間。
+      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。iPhone 上面，網頁只用得到原廠自帶嘅語音'+
+                   '（設定入面落載嘅高音質聲，Apple 唔會開放俾網頁用）。'+
+                   '上面幾把可以逐把試下，揀你細路聽得最清嗰把。';
+    }else if(/Android/i.test(ua)){
+      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。Android 可以喺 '+
+                   '<b>設定 → 系統 → 語言與輸入法 → 文字轉語音</b> 裝 Google 語音服務，'+
+                   '落載 English 高音質語音包，返嚟就會多幾把揀。';
+    }else{
+      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。呢部機搵到 '+n+' 把合用嘅英文語音。';
+    }
+  }
+
+  $('btnParaQuit').onclick=function(){stopParaPlayback();show('setup')};
+  $('btnParaBack').onclick=function(){show('setup')};
+  $('btnParaRetry').onclick=function(){paraIdx=0;show('para');renderSentList();setParaFocus(0)};
 
   /* ---------- print ---------- */
   function buildPrint(){

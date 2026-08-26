@@ -96,6 +96,17 @@
   }
   .saverow input[type=text]:focus,.saverow select:focus{outline:2px solid var(--board-green);outline-offset:1px}
   .saverow button{padding:10px 14px;font-size:.9rem;flex:none}
+  .plusline{display:block;margin-top:12px;font-size:.82rem;line-height:1.5;
+            color:#7A8496;text-decoration:none;border-top:1px dashed #D8D5C8;padding-top:11px}
+  .plusline:active{color:var(--board-green)}
+  .plusbox{margin-top:16px;text-align:left;background:#fff;
+           border:1.5px dashed var(--board-green);border-radius:12px;padding:14px 15px}
+  .plusbox-h{font-weight:700;font-size:.98rem;margin-bottom:5px}
+  .plusbox-p{font-size:.85rem;color:#5C6675;line-height:1.55;margin-bottom:11px}
+  .plusbox a{display:block;text-align:center;background:var(--board-green);color:#fff;
+             padding:11px;border-radius:11px;text-decoration:none;font-weight:600;
+             font-size:.93rem;box-shadow:0 3px 0 #1F5940}
+  .plusbox .ghost{display:block;margin:8px auto 0;font-size:.82rem;color:#7A8496}
   .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.9rem}
   .checkline input{width:18px;height:18px;accent-color:var(--board-green)}
   .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
@@ -342,6 +353,12 @@ I like fruit."></textarea>
         <button class="secondary" id="btnLoad">載入</button>
         <button class="ghost" id="btnDel">刪除</button>
       </div>
+      <!-- 淡色細字，同其他 hint 同一級別，唔搶「開始默書」個掣。
+           一定要用 <a target="_blank">，唔可以用 window.open()：
+           iOS Safari 會當 JS 開新分頁係彈出視窗擋咗（見 iOS 手勢鏈教訓）。 -->
+      <a class="plusline" href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">
+        每日想俾小朋友學新字？貼堂 Plus 每星期幫你安排好 →
+      </a>
     </div>
 
     <div class="card">
@@ -570,6 +587,12 @@ I like fruit."></textarea>
         </div>
         <div class="optin-msg" id="optinMsg"></div>
         <button class="ghost" id="btnOptinSkip">下次先</button>
+      </div>
+      <div class="plusbox hidden" id="plusBox">
+        <div class="plusbox-h">📅 每日 5 個字，唔使你自己諗</div>
+        <p class="plusbox-p" id="plusBoxP"></p>
+        <a href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">睇下貼堂 Plus</a>
+        <button class="ghost" id="btnPlusBoxSkip">唔使喇，唔好再顯示</button>
       </div>
       <div class="btnrow" style="margin-top:18px">
         <button class="primary" id="btnRetryWrong">只再默錯字</button>
@@ -963,11 +986,38 @@ I like fruit."></textarea>
     // 只喺「啱啱默完、有成功感」呢一刻問一次；答咗或者skip咗就唔再煩
     var done=false;
     try{done=localStorage.getItem('dc_optin')==='1'}catch(e){}
-    $('optinBox').classList.toggle('hidden',!(EMAIL_ENDPOINT && !done));
+    var showOptin=!!(EMAIL_ENDPOINT && !done);
+    $('optinBox').classList.toggle('hidden',!showOptin);
+
+    /* Plus 提示：只俾「真係用開」嘅人見。
+       第一次用嘅家長仲喺度衡量個工具好唔好，嗰陣叫佢俾錢太早；
+       用夠 PLUS_HINT_AFTER 次即係已經信任咗個工具，先值得問。
+       同一版面唔會同時出兩個 CTA —— 兩個一齊出會互相搶，兩邊轉化率一齊跌。 */
+    var runs=bumpRuns();
+    $('plusBox').classList.toggle('hidden',
+      !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
+    if(!$('plusBox').classList.contains('hidden')){
+      $('plusBoxP').textContent='你已經用咗貼堂 '+runs+' 次。想每個星期都有新詞表同短文，'+
+        '唔使自己揀字、唔使自己打，可以睇下 Plus。';
+    }
 
     show('result');
   }
   function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+  /* 練習次數：用嚟決定幾時先提 Plus */
+  var PLUS_HINT_AFTER=3;
+  function bumpRuns(){
+    var n=0;
+    try{
+      n=parseInt(localStorage.getItem('dc_runs')||'0',10)||0;
+      n++;localStorage.setItem('dc_runs',String(n));
+    }catch(e){n=0}
+    return n;
+  }
+  function plusHintOff(){
+    try{return localStorage.getItem('dc_plushint')==='off'}catch(e){return false}
+  }
 
   /* ==================================================================
      段落默書（Plus）
@@ -1699,6 +1749,10 @@ I like fruit."></textarea>
 
   function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
   $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
+  $('btnPlusBoxSkip').onclick=function(){
+    try{localStorage.setItem('dc_plushint','off')}catch(e){}
+    $('plusBox').classList.add('hidden');
+  };
   $('btnOptin').onclick=function(){
     var el=$('optinEmail'),msg=$('optinMsg'),btn=this;
     var v=(el.value||'').trim();

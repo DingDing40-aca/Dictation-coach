@@ -638,6 +638,34 @@ I like fruit."></textarea>
     }).then(function(r){return r.ok});
   }
 
+  /* ==================================================================
+     事件記錄（用返上面同一套 Google Form 通道，零成本、唔使第二個平台）
+     ------------------------------------------------------------------
+     只記匿名事件，唔記 email、唔記詞表內容、唔記小朋友答案。
+     裝置 ID 係隨機生成嘅 8 個字，淨係用嚟數「有幾多部唔同機用過」，
+     追蹤唔到任何人身份。
+     填咗下面兩行先會生效，唔填就完全唔會 send 任何嘢出去。
+     ================================================================== */
+  var EVENT_ENDPOINT='https://docs.google.com/forms/d/e/1FAIpQLScYXRgbgBorn6pnCet8KIJLy6a02lXx-1E1UFiLuMMXMv6i-g/formResponse';
+  var EVENT_FIELD='entry.858115340';
+
+  function deviceId(){
+    try{
+      var d=localStorage.getItem('dc_did');
+      if(!d){d=Math.random().toString(36).slice(2,10);localStorage.setItem('dc_did',d)}
+      return d;
+    }catch(e){return 'nostore'}
+  }
+  /* 送格式：事件|裝置|數值　—— Google Form 自己會加時間戳 */
+  function track(ev,val){
+    if(!EVENT_ENDPOINT||!EVENT_FIELD)return;
+    try{
+      var fd=new FormData();
+      fd.append(EVENT_FIELD, ev+'|'+deviceId()+'|'+(val===undefined?'':val));
+      fetch(EVENT_ENDPOINT,{method:'POST',mode:'no-cors',body:fd});
+    }catch(e){}
+  }
+
   var $=function(id){return document.getElementById(id)};
   var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult'),
              para:$('viewPara'),pararesult:$('viewParaResult')};
@@ -994,6 +1022,7 @@ I like fruit."></textarea>
        用夠 PLUS_HINT_AFTER 次即係已經信任咗個工具，先值得問。
        同一版面唔會同時出兩個 CTA —— 兩個一齊出會互相搶，兩邊轉化率一齊跌。 */
     var runs=bumpRuns();
+    track('dictation_done',runs);
     $('plusBox').classList.toggle('hidden',
       !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
     if(!$('plusBox').classList.contains('hidden')){
@@ -1540,6 +1569,7 @@ I like fruit."></textarea>
       box.appendChild(d);
     });
 
+    track('para_done',sc.score);
     $('paraScoreLabel').textContent=sc.score+' 分';
     show('pararesult');
   }
@@ -1551,7 +1581,9 @@ I like fruit."></textarea>
       alert('請先喺上面個框貼一段英文短文（例如：The cat sat on the mat. It was happy.）');
       return;
     }
+    track('para_click');
     if(plusUnlocked()){startPara();return}
+    track('para_wall');        // ← 想試但用唔到，呢個數字最關鍵
     openPlusModal();
   };
   $('btnPlusClose').onclick=closePlusModal;
@@ -1564,6 +1596,7 @@ I like fruit."></textarea>
     if(!v){msg.className='modal-msg err';msg.textContent='請輸入密碼';return}
     var hv=sha256Hex(v);
     if(PLUS_HASHES.indexOf(hv)>=0){
+      track('para_unlock');
       setPlusUnlocked(hv);closePlusModal();startPara();
     }else{
       msg.className='modal-msg err';
@@ -1729,6 +1762,7 @@ I like fruit."></textarea>
   refreshSaved();
 
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
+  track('app_open');
 
   $('btnStart').onclick=function(){
     unlockSpeech(); unlockAudio();   // 一定要喺呢個手勢入面行，唔可以延後
@@ -1736,7 +1770,7 @@ I like fruit."></textarea>
     if(!words.length){alert('請先貼上詞表（每行一個字）');return}
     startPractice(words);
   };
-  $('btnPrint').onclick=function(){if(buildPrint())window.print()};
+  $('btnPrint').onclick=function(){if(buildPrint()){track('print');window.print()}};
   $('btnSpeak').onclick=function(){unlockSpeech();unlockAudio();if(idx<queue.length)speak(queue[idx],false)};
   $('btnSlow').onclick=function(){unlockSpeech();unlockAudio();if(idx<queue.length)speak(queue[idx],true)};
   $('btnCheck').onclick=checkAnswer;
@@ -1749,6 +1783,14 @@ I like fruit."></textarea>
 
   function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
   $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
+  (function(){
+    var a=document.querySelector('.plusline');
+    if(a)a.addEventListener('click',function(){track('plus_click','setup')});
+    var b=document.querySelector('#plusBox a');
+    if(b)b.addEventListener('click',function(){track('plus_click','result')});
+    var c=$('plusBuy');
+    if(c)c.addEventListener('click',function(){track('plus_click','modal')});
+  })();
   $('btnPlusBoxSkip').onclick=function(){
     try{localStorage.setItem('dc_plushint','off')}catch(e){}
     $('plusBox').classList.add('hidden');
@@ -1762,6 +1804,7 @@ I like fruit."></textarea>
     btn.disabled=true;msg.className='optin-msg';msg.textContent='send緊…';
     submitEmail(v).then(function(ok){
       if(ok){
+        track('optin_ok');
         markOptinDone();
         msg.className='optin-msg ok';msg.textContent='收到！整好即刻send俾你 ✓';
         el.disabled=true;btn.style.display='none';$('btnOptinSkip').style.display='none';

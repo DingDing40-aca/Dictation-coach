@@ -1762,7 +1762,24 @@ I like fruit."></textarea>
   refreshSaved();
 
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
-  track('app_open');
+  /* ⚠️ app_open 唔可以每次載入都送一次。
+     重新整理、撳返回、Safari 背景分頁自動重載、由舊網址跳轉過嚟 ——
+     全部都會令同一次「開 app」重複計。實測一次開啟計咗 6 次。
+     改成：同一部機 30 分鐘內只計一次（＝一個 session）。
+     另外分開一個 first_open，同一部機一世只計一次，用嚟數真實新用戶。 */
+  (function(){
+    var now=Date.now(),last=0,isNew=false;
+    try{
+      isNew=!localStorage.getItem('dc_did');      // deviceId() 未叫過即係新機
+      last=parseInt(localStorage.getItem('dc_lastopen')||'0',10)||0;
+      localStorage.setItem('dc_lastopen',String(now));
+    }catch(e){
+      // localStorage 被封（無痕／FB 內置瀏覽器）：去重做唔到，照送一次。
+      // 呢批數字會偏高，分析時要留意。
+    }
+    if(isNew) track('first_open');
+    if(now-last > 30*60*1000) track('app_open');
+  })();
 
   $('btnStart').onclick=function(){
     unlockSpeech(); unlockAudio();   // 一定要喺呢個手勢入面行，唔可以延後

@@ -84,8 +84,9 @@
   .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
   .opt select{width:100%;border:none;background:transparent;font-size:.95rem;color:var(--ink);font-family:inherit}
   .opt select:focus{outline:none}
-  .samplerow{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
-  .samplelab{font-size:.83rem;color:#7A8496}
+  .samplerow{display:flex;align-items:stretch;gap:9px;margin-top:11px}
+  .samplerow .chip{flex:1;text-align:center;padding:11px 8px;font-size:.88rem}
+  .samplelab{font-size:.8rem;color:#7A8496;margin-top:8px;line-height:1.5}
   .chip{background:#fff;border:1.5px solid #C9C6B8;color:var(--ink);
         border-radius:12px;padding:11px 16px;font-size:.92rem;font-weight:600}
   .chip:active{background:var(--soft)}
@@ -227,6 +228,9 @@
               font-size:1.05rem;line-height:1.6}
   .sent input:focus{outline:none;border-bottom-color:var(--board-green)}
   .sent input::placeholder{color:#C8CFDB;font-family:inherit;font-size:.9rem}
+  .paratrial{margin-top:12px;background:var(--soft);border-radius:9px;
+             padding:9px 12px;font-size:.83rem;color:#5C6675;line-height:1.5}
+  .paratrial b{color:var(--board-green)}
   .sent-prog{font-size:.8rem;color:var(--board-green);font-weight:700;
              margin-top:6px;min-height:1.1em;letter-spacing:.02em}
   .paraopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
@@ -340,9 +344,10 @@ banana
 orange
 I like fruit."></textarea>
       <div class="samplerow">
-        <button class="chip" id="btnDemo">▷ 試下（3個字）</button>
-        <span class="samplelab">冇帶詞表都試到</span>
+        <button class="chip" id="btnDemo">▷ 試下單詞默書</button>
+        <button class="chip" id="btnDemoPara">▷ 試下段落默書</button>
       </div>
+      <div class="samplelab">冇帶詞表都試到。撳咗會自動填example，跟住撳下面個掣就開始。</div>
 
       <div class="saverow">
         <input type="text" id="listName" placeholder="詞表名（例如：P2 Unit 5）" autocomplete="off">
@@ -357,7 +362,7 @@ I like fruit."></textarea>
            一定要用 <a target="_blank">，唔可以用 window.open()：
            iOS Safari 會當 JS 開新分頁係彈出視窗擋咗（見 iOS 手勢鏈教訓）。 -->
       <a class="plusline" href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">
-        每日想俾小朋友學新字？貼堂 Plus 每星期幫你安排好 →
+        想俾小朋友每日都學新字？貼堂 Plus 每星期幫你安排好晒 →
       </a>
     </div>
 
@@ -522,6 +527,7 @@ I like fruit."></textarea>
         撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>，用 Safari 或 Chrome 開就會有聲。
       </div>
 
+      <div class="paratrial hidden" id="paraTrial"></div>
       <div id="sentList" style="margin-top:14px"></div>
 
       <div class="btnrow">
@@ -1169,7 +1175,9 @@ I like fruit."></textarea>
     if(intro){
       intro.textContent=plusExpired()
         ? '新一個月喇，要輸入返今個月嘅密碼。喺你 Payhip 會員區嘅帖文度攞，同每星期嘅詞表擺喺一齊。'
-        : '輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip 會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。';
+        : (paraUsed()>=PARA_FREE
+          ? '你已經試咗 '+PARA_FREE+' 次段落默書。想繼續用，可以訂 Plus；已經有密碼就喺下面輸入。'
+          : '輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip 會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。');
     }
     $('plusMsg').textContent='';$('plusMsg').className='modal-msg';
     $('plusInput').value='';
@@ -1423,6 +1431,18 @@ I like fruit."></textarea>
     });
     $('paraCount').textContent='第 '+(paraIdx+1)+' / '+paraList.length+' 句';
     $('btnParaNext').textContent=(paraIdx+1>=paraList.length)?'🔊 再讀最後一句':'▶ 讀下一句';
+    showParaTrial();
+  }
+
+  /* 試用中就講清楚仲有幾多次，唔好等佢用完先突然撞牆 */
+  function showParaTrial(){
+    var el=$('paraTrial'); if(!el)return;
+    if(plusUnlocked()){el.classList.add('hidden');return}
+    var left=paraLeft();
+    el.classList.remove('hidden');
+    el.innerHTML=left>0
+      ? '🎁 免費試用中，用完呢次仲有 <b>'+left+'</b> 次。'
+      : '🎁 呢次係最後一次免費試用。';
   }
 
   function paraAnswers(){
@@ -1570,11 +1590,33 @@ I like fruit."></textarea>
     });
 
     track('para_done',sc.score);
+    if(!plusUnlocked()&&paraLeft()===0){
+      box.insertAdjacentHTML('afterbegin',
+        '<div class="paratrial" style="margin-bottom:14px">'+
+        '🎁 你已經試晒 '+PARA_FREE+' 次段落默書。想繼續用，'+
+        '<a href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener" '+
+        'style="color:var(--board-green);font-weight:700">睇下貼堂 Plus</a>。</div>');
+    }
     $('paraScoreLabel').textContent=sc.score+' 分';
     show('pararesult');
   }
 
   /* ---------- 段落 wire up ---------- */
+  /* 免費試用：任何人首 PARA_FREE 次段落默書用得到。
+     實測數據（2026-08）：16 個人撳過段落默書，16 個全部撞牆，
+     14 個撳咗去睇價，0 個買。即係有興趣但唔肯為未試過嘅嘢俾錢。
+     所以試用要放喺付費牆之前，唔係之後。 */
+  var PARA_FREE=3;
+  function paraUsed(){
+    try{return parseInt(localStorage.getItem('dc_para_runs')||'0',10)||0}catch(e){return 0}
+  }
+  function bumpParaUsed(){
+    var n=paraUsed()+1;
+    try{localStorage.setItem('dc_para_runs',String(n))}catch(e){}
+    return n;
+  }
+  function paraLeft(){return Math.max(0,PARA_FREE-paraUsed())}
+
   $('btnPara').onclick=function(){
     unlockSpeech();unlockAudio();
     if(!splitSentences($('wordInput').value).length){
@@ -1583,7 +1625,13 @@ I like fruit."></textarea>
     }
     track('para_click');
     if(plusUnlocked()){startPara();return}
-    track('para_wall');        // ← 想試但用唔到，呢個數字最關鍵
+    if(paraLeft()>0){
+      var n=bumpParaUsed();
+      track('para_trial',n);
+      startPara();
+      return;
+    }
+    track('para_wall');        // 試用額用完先算真正撞牆
     openPlusModal();
   };
   $('btnPlusClose').onclick=closePlusModal;
@@ -1728,10 +1776,25 @@ I like fruit."></textarea>
      選字準則：多音節、輔音分明。單音節短字（cat/book/of/was）正正就係
      實測證實 TTS 讀得最矇嗰批，唔可以攞嚟做第一印象。 */
   var DEMO_WORDS=['apple','banana','orange'];
+  /* 段落 demo：兩句短句，夠短唔會嚇親人，但足以示範
+     逐句慢讀、讀標點、分組停頓、逐字批改呢幾樣嘢。
+     用返初小識嘅字，唔好一開波就考起小朋友。 */
+  var DEMO_PARA='I have a red bag. My bag is very big.';
+
   $('btnDemo').onclick=function(){
     $('wordInput').value=DEMO_WORDS.join('\n');
     $('listName').value='';
+    track('demo_click','word');
     $('wordInput').scrollIntoView({block:'nearest'});
+  };
+  $('btnDemoPara').onclick=function(){
+    $('wordInput').value=DEMO_PARA;
+    $('listName').value='';
+    track('demo_click','para');
+    $('wordInput').scrollIntoView({block:'nearest'});
+    // 直接帶佢去段落默書，唔使佢自己再揾個掣
+    var b=$('btnPara');
+    if(b)setTimeout(function(){b.scrollIntoView({block:'center',behavior:'smooth'})},120);
   };
 
   $('btnSave').onclick=function(){

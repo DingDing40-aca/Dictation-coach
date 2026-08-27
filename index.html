@@ -474,11 +474,8 @@ I like fruit."></textarea>
         <div class="opt">
           <label>讀字速度</label>
           <select id="optParaRate">
-            <option value="0.5">超慢（逐隻字咁讀）</option>
-            <option value="0.6">好慢</option>
-            <option value="0.75">慢</option>
             <option value="0.85" selected>慢慢讀（同單詞默書一樣）</option>
-            <option value="1">正常</option>
+            <option value="0.5">最慢（逐隻字咁讀）</option>
           </select>
         </div>
         <div class="opt">
@@ -1688,25 +1685,32 @@ I like fruit."></textarea>
 
   /* 部機把聲靚唔靚，前端改唔到。唯一真正有效嘅係叫用戶裝返把好聲，
      所以按平台畀返正確嘅指示路徑。 */
+  /* 呢段字係俾家長睇嘅，唔係技術筆記。
+     只講三樣：而家用緊邊把、推薦揀邊把、點解要試。
+     唔好講 API 限制、唔好講 Apple 政策 —— 家長唔需要知，
+     講咗只會令佢哋覺得個工具有問題。 */
   function showVoiceTip(){
     var el=$('voiceTip');if(!el)return;
     var v=pickVoice(),nm=v?(v.name||''):'';
-    var n=voices.filter(allowedVoice).length;
-    var ua=navigator.userAgent||'';
-    if(!nm){el.textContent='暫時搵唔到英文語音，撳一次「開始默書」之後再返嚟睇。';return}
-    if(/iPhone|iPad|iPod/i.test(ua)){
-      // ⚠️ 唔好再叫 iPhone 用戶去落載 Enhanced／Premium：
-      //    Apple 唔會將落載嘅聲交俾網頁，叫佢哋去落載係嘥佢哋時間。
-      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。iPhone 上面，網頁只用得到原廠自帶嘅語音'+
-                   '（設定入面落載嘅高音質聲，Apple 唔會開放俾網頁用）。'+
-                   '上面幾把可以逐把試下，揀你細路聽得最清嗰把。';
-    }else if(/Android/i.test(ua)){
-      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。Android 可以喺 '+
-                   '<b>設定 → 系統 → 語言與輸入法 → 文字轉語音</b> 裝 Google 語音服務，'+
-                   '落載 English 高音質語音包，返嚟就會多幾把揀。';
-    }else{
-      el.innerHTML='而家用緊 <b>'+escapeHtml(nm)+'</b>。呢部機搵到 '+n+' 把合用嘅英文語音。';
+    if(!nm){el.textContent='';return}
+    var pool=voices.filter(allowedVoice).map(function(x){return (x.name||'').toLowerCase()});
+    var has=function(w){
+      for(var i=0;i<pool.length;i++){
+        if(new RegExp('(^|[^a-z])'+w+'([^a-z]|$)').test(pool[i]))return true;
+      }
+      return false;
+    };
+    var rec=[];
+    if(has('samantha'))rec.push('Samantha');
+    if(has('daniel'))rec.push('Daniel');
+
+    var html='而家用緊 <b>'+escapeHtml(nm)+'</b>。';
+    if(rec.length){
+      html+='我哋試過覺得 <b>'+rec.join('</b> 同 <b>')+'</b> 讀初小英文最清楚，'+
+            '建議由呢'+(rec.length>1?'兩':'')+'把開始。';
     }
+    html+='每部電話有嘅聲都唔同，逐把試一次，揀你小朋友聽得最舒服嗰把就得。';
+    el.innerHTML=html;
   }
 
   $('btnParaQuit').onclick=function(){stopParaPlayback();show('setup')};

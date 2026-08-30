@@ -6,6 +6,17 @@
 <!-- 唔好畀 iOS／Android 強制深色模式反轉個淺色紙質背景 -->
 <meta name="color-scheme" content="light">
 
+<!-- PWA：加到主畫面之後會用獨立 webview 開，
+     storage 唔會再被 FB／IG 內置瀏覽器清走（呢個係 first_open 一直虛高嘅原因）。 -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2E6E52">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="貼堂">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+
 <title>貼堂 TipTong｜英文默書練習</title>
 <meta name="description" content="貼上學校詞表，自動讀音、自動批改、錯字自動重默，一鍵印默書紙。專為香港小一至小三家長而設，免費，唔使註冊。">
 <!-- Facebook / WhatsApp 分享預覽卡。冇 og:image 個卡就得一條光禿禿嘅字，好少人撳。
@@ -97,6 +108,14 @@
   }
   .saverow input[type=text]:focus,.saverow select:focus{outline:2px solid var(--board-green);outline-offset:1px}
   .saverow button{padding:10px 14px;font-size:.9rem;flex:none}
+  .a2hs{background:#EAF2ED;border:1.5px solid var(--board-green);border-radius:12px;
+        padding:13px 15px;margin:12px 0 4px}
+  .a2hs-h{font-weight:700;font-size:.95rem;margin-bottom:5px}
+  .a2hs-p{font-size:.85rem;color:#3B4A63;line-height:1.65}
+  .a2hs-p b{color:var(--board-green)}
+  .a2hs-row{display:flex;gap:8px;margin-top:11px}
+  .a2hs-row button{flex:1;padding:10px;font-size:.88rem}
+  .a2hs .ghost{flex:0 0 auto;color:#7A8496}
   .plusline{display:block;margin-top:12px;font-size:.82rem;line-height:1.5;
             color:#7A8496;text-decoration:none;border-top:1px dashed #D8D5C8;padding-top:11px}
   .plusline:active{color:var(--board-green)}
@@ -320,6 +339,15 @@
   <div class="iabwarn hidden" id="iabWarn">
     ⚠️ 你而家喺 <b>Facebook／IG 入面</b>開緊，好可能<b>冇聲</b>。<br>
     撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>（Open in browser）就會正常。
+  </div>
+
+  <div class="a2hs hidden" id="a2hs">
+    <div class="a2hs-h">📲 加到主畫面，下次一撳就用到</div>
+    <div class="a2hs-p" id="a2hsHow"></div>
+    <div class="a2hs-row">
+      <button class="primary hidden" id="btnA2hsGo">加到主畫面</button>
+      <button class="ghost" id="btnA2hsSkip">唔使喇</button>
+    </div>
   </div>
 
   <header class="app">
@@ -1829,6 +1857,65 @@ I like fruit."></textarea>
   refreshSaved();
 
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
+
+  /* ---------- 加到主畫面 ----------
+     唔止係方便。加咗之後個 app 用獨立 webview 開，
+     localStorage 唔會再被 FB／IG 內置瀏覽器清走 ——
+     即係詞表、Plus 解鎖、練習次數先真正儲存到。 */
+  function isStandalone(){
+    return (window.navigator&&window.navigator.standalone===true) ||
+           (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+  }
+  function a2hsDismissed(){
+    try{return localStorage.getItem('dc_a2hs')==='off'}catch(e){return false}
+  }
+  var deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();deferredPrompt=e;
+    showA2hs('android');
+  });
+  window.addEventListener('appinstalled',function(){
+    track('pwa_installed');
+    $('a2hs').classList.add('hidden');
+  });
+
+  function showA2hs(kind){
+    if(isStandalone()||a2hsDismissed())return;
+    var box=$('a2hs'),how=$('a2hsHow'),go=$('btnA2hsGo');
+    if(!box)return;
+    if(kind==='android'){
+      how.innerHTML='撳下面粒掣，個「貼堂」圖示就會出現喺主畫面，'+
+                    '之後唔使再打網址。你儲低嘅詞表亦都會保存得穩陣啲。';
+      go.classList.remove('hidden');
+    }else{
+      how.innerHTML='喺 Safari 底部撳 <b>分享</b> 圖示（↑），'+
+                    '揀 <b>「加入主畫面」</b>，就會多咗個「貼堂」圖示。<br>'+
+                    '之後唔使再打網址，儲低嘅詞表亦都會保存得穩陣啲。';
+      go.classList.add('hidden');
+    }
+    box.classList.remove('hidden');
+    track('pwa_prompt',kind);
+  }
+
+  $('btnA2hsGo').onclick=function(){
+    if(!deferredPrompt)return;
+    track('pwa_click');
+    deferredPrompt.prompt();
+    deferredPrompt=null;
+    $('a2hs').classList.add('hidden');
+  };
+  $('btnA2hsSkip').onclick=function(){
+    try{localStorage.setItem('dc_a2hs','off')}catch(e){}
+    $('a2hs').classList.add('hidden');
+  };
+
+  /* iOS Safari 冇 beforeinstallprompt，要自己教。
+     內置瀏覽器加唔到主畫面，唔好喺嗰度顯示（嗰邊已經有另一個橫額叫佢喺瀏覽器開）。 */
+  if(!isStandalone() && !isInAppBrowser() &&
+     /iPhone|iPad|iPod/i.test(navigator.userAgent||'')){
+    showA2hs('ios');
+  }
+  if(isStandalone()) track('app_standalone');
   /* ⚠️ app_open 唔可以每次載入都送一次。
      重新整理、撳返回、Safari 背景分頁自動重載、由舊網址跳轉過嚟 ——
      全部都會令同一次「開 app」重複計。實測一次開啟計咗 6 次。

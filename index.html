@@ -699,7 +699,10 @@ I like fruit."></textarea>
         </div>
 
         <div class="payqr hidden" id="alipayBox">
-          <img src="alipay.png.JPG" alt="AlipayHK 收款碼（HK$88）" loading="lazy" class="payimg"
+          <!-- 唔用 loading="lazy"：兩張圖一開始喺 display:none 容器入面，
+               Safari 對「隱藏容器內嘅 lazy 圖」處理唔穩定，展開後都唔補載，
+               直接出爛圖示。圖細，即刻載反而穩陣。 -->
+          <img src="alipay.png.JPG" alt="AlipayHK 收款碼（HK$88）" class="payimg"
                onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='alipay.png.jpg'}">
           <ol class="paysteps">
             <li>長按上面個 QR，揀「儲存圖片」</li>
@@ -710,7 +713,7 @@ I like fruit."></textarea>
 
         <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
         <div class="payqr hidden" id="paymeQrBox">
-          <img src="payme.png.jpg" alt="PayMe 收款碼" loading="lazy" class="payimg"
+          <img src="payme.png.jpg" alt="PayMe 收款碼" class="payimg"
                onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='payme.png.JPG'}">
           <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
         </div>

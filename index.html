@@ -144,6 +144,9 @@
   .paysteps{margin:12px 0 0;padding-left:19px;font-size:.83rem;
             color:#5C6675;line-height:1.65}
   .paycodehint{font-size:.83rem;color:#5C6675;margin-bottom:7px}
+  /* 版本號：唯一用途係一眼睇到部機載緊邊個版本，慳返「係咪 cache？」嘅來回。
+     每次改動記得 +1。上到線收到錢之後可以拆走。 */
+  .buildtag{text-align:center;font-size:.68rem;color:#C4C0B2;margin-top:9px}
   /* ---- 發碼工具（#gen，只有擁有者用） ---- */
   #genBox{position:fixed;inset:0;background:#111;color:#eee;z-index:9999;
           padding:22px;font-family:ui-monospace,Menlo,monospace;overflow:auto}
@@ -699,11 +702,13 @@ I like fruit."></textarea>
         </div>
 
         <div class="payqr hidden" id="alipayBox">
-          <!-- 唔用 loading="lazy"：兩張圖一開始喺 display:none 容器入面，
-               Safari 對「隱藏容器內嘅 lazy 圖」處理唔穩定，展開後都唔補載，
-               直接出爛圖示。圖細，即刻載反而穩陣。 -->
+          <!-- 唔用 loading="lazy"：圖一開始喺 display:none 容器入面，
+               Safari 對隱藏容器內嘅 lazy 圖處理唔穩定，展開後唔補載。
+               檔名容錯：手機上載 GitHub 會補返真副檔名，大細階又唔一致，
+               所以逐個試落去，唔靠估邊個啱。 -->
           <img src="alipay.png.JPG" alt="AlipayHK 收款碼（HK$88）" class="payimg"
-               onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='alipay.png.jpg'}">
+               data-try="alipay.png.jpg|alipay.png|alipay.jpg|pay/alipay.png.JPG"
+               onerror="tryNextImg(this)">
           <ol class="paysteps">
             <li>長按上面個 QR，揀「儲存圖片」</li>
             <li>開 AlipayHK → 掃一掃 → 撳右上角相簿，揀返張圖</li>
@@ -714,7 +719,8 @@ I like fruit."></textarea>
         <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
         <div class="payqr hidden" id="paymeQrBox">
           <img src="payme.png.jpg" alt="PayMe 收款碼" class="payimg"
-               onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='payme.png.JPG'}">
+               data-try="payme.png.JPG|payme.png|payme.jpg|pay/payme.png.jpg"
+               onerror="tryNextImg(this)">
           <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
         </div>
 
@@ -774,6 +780,15 @@ I like fruit."></textarea>
 <div id="printArea"></div>
 
 <script>
+/* 圖片檔名後備：src 失敗就試 data-try 入面下一個，試晒為止。
+   一定要係全域函數 —— inline onerror 喺 window scope 執行，
+   如果寫喺下面個 IIFE 入面會 ReferenceError，反而永遠救唔到。 */
+function tryNextImg(img){
+  var list=(img.getAttribute('data-try')||'').split('|').filter(Boolean);
+  if(!list.length)return;
+  img.src=list.shift();
+  img.setAttribute('data-try',list.join('|'));
+}
 (function(){
   /* ==================================================================
      收 email 設定 —— 開戶之後填呢兩行就會生效，唔填就自動收埋個表單。

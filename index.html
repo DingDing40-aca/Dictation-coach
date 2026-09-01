@@ -699,7 +699,7 @@ I like fruit."></textarea>
         </div>
 
         <div class="payqr hidden" id="alipayBox">
-          <img src="pay/alipay.png" alt="AlipayHK 收款碼（HK$88）" loading="lazy">
+          <img src="pay/alipay.png" alt="AlipayHK 收款碼（HK$88）" loading="lazy" class="payimg" data-alt="pay/alipay.png.jpg">
           <ol class="paysteps">
             <li>長按上面個 QR，揀「儲存圖片」</li>
             <li>開 AlipayHK → 掃一掃 → 撳右上角相簿，揀返張圖</li>
@@ -709,7 +709,7 @@ I like fruit."></textarea>
 
         <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
         <div class="payqr hidden" id="paymeQrBox">
-          <img src="pay/payme.png" alt="PayMe 收款碼" loading="lazy">
+          <img src="pay/payme.png" alt="PayMe 收款碼" loading="lazy" class="payimg" data-alt="pay/payme.png.jpg">
           <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
         </div>
 
@@ -2276,6 +2276,19 @@ I like fruit."></textarea>
      ⚠️ 呢個只係方便工具，唔係保安措施 —— SECRET 本身喺前端，
         真正防繞過要伺服器，而 0 訂單階段唔起伺服器（見上面註解）。
      ================================================================== */
+  /* QR 圖檔名容錯：手機上載時 GitHub 會按真實檔案格式補返副檔名，
+     改咗名嘅 jpg 會變成 payme.png.jpg。與其逼個檔名啱，不如兩個都試。
+     載入失敗一次就轉去 data-alt，再失敗就唔再試（避免無限迴圈）。 */
+  (function(){
+    var imgs=document.querySelectorAll('.payimg'),i;
+    for(i=0;i<imgs.length;i++){
+      imgs[i].addEventListener('error',function(){
+        var alt=this.getAttribute('data-alt');
+        if(alt){this.removeAttribute('data-alt');this.src=alt}
+      });
+    }
+  })();
+
   function initGen(){
     if(location.hash!=='#gen')return;
     var box=document.createElement('div');

@@ -116,9 +116,43 @@
   .a2hs-row{display:flex;gap:8px;margin-top:11px}
   .a2hs-row button{flex:1;padding:10px;font-size:.88rem}
   .a2hs .ghost{flex:0 0 auto;color:#7A8496}
-  .plusline{display:block;margin-top:12px;font-size:.82rem;line-height:1.5;
-            color:#7A8496;text-decoration:none;border-top:1px dashed #D8D5C8;padding-top:11px}
+  .plusline{display:block;width:100%;margin-top:12px;font-size:.82rem;line-height:1.5;
+            color:#7A8496;text-decoration:none;border:0;border-top:1px dashed #D8D5C8;
+            padding-top:11px;background:none;text-align:left;cursor:pointer;font-family:inherit}
   .plusline:active{color:var(--board-green)}
+  .plusbox-cta{background:none;border:0;padding:0;font:inherit;font-weight:700;
+               color:var(--board-green);text-decoration:underline;cursor:pointer}
+  /* ---- 付款區 ---- */
+  .paybox{text-align:left;background:#FAF9F4;border:1.5px solid #E4E0D2;
+          border-radius:12px;padding:13px 14px;margin:12px 0 14px}
+  .payprice{font-size:.95rem;font-weight:700;margin-bottom:11px}
+  .payprice b{font-size:1.45rem;color:var(--board-green)}
+  .payrow{display:flex;flex-direction:column;gap:8px}
+  .paybtn{display:block;text-align:center;padding:13px;border-radius:10px;
+          font-weight:700;font-size:1rem;text-decoration:none;color:#fff}
+  .paybtn.payme{background:#D8232A}
+  .paybtn.alipay{background:#1677FF}
+  .paybtn:active{opacity:.85}
+  .payqr-toggle{width:100%;margin-top:9px;font-size:.8rem;color:#7A8496}
+  .payqr{margin-top:11px;text-align:center;background:#fff;border-radius:10px;
+         padding:12px;border:1px solid #E4E0D2}
+  .payqr img{width:100%;max-width:210px;border-radius:8px}
+  .payqr .paysteps{text-align:left;margin-top:10px}
+  .payqrnote{font-size:.8rem;color:#5C6675;margin-top:8px}
+  .payafter{border-top:1px dashed #D8D5C8;padding-top:11px;margin-top:13px}
+  button.paybtn{width:100%;border:0;font-family:inherit;cursor:pointer}
+  .paysteps{margin:12px 0 0;padding-left:19px;font-size:.83rem;
+            color:#5C6675;line-height:1.65}
+  .paycodehint{font-size:.83rem;color:#5C6675;margin-bottom:7px}
+  /* ---- 發碼工具（#gen，只有擁有者用） ---- */
+  #genBox{position:fixed;inset:0;background:#111;color:#eee;z-index:9999;
+          padding:22px;font-family:ui-monospace,Menlo,monospace;overflow:auto}
+  #genBox h4{margin:0 0 12px;font-size:1rem}
+  #genOut{font-size:1.7rem;letter-spacing:2px;margin:16px 0;user-select:all;
+          word-break:break-all;color:#7CE38B}
+  #genBox button{padding:11px 16px;margin-right:8px;border:0;border-radius:8px;
+                 background:#2F6B3A;color:#fff;font-size:.95rem;cursor:pointer}
+  #genLog{margin-top:18px;font-size:.8rem;color:#9aa;line-height:1.7;white-space:pre-wrap}
   .plusbox{margin-top:16px;text-align:left;background:#fff;
            border:1.5px dashed var(--board-green);border-radius:12px;padding:14px 15px}
   .plusbox-h{font-weight:700;font-size:.98rem;margin-bottom:5px}
@@ -247,6 +281,21 @@
               font-size:1.05rem;line-height:1.6}
   .sent input:focus{outline:none;border-bottom-color:var(--board-green)}
   .sent input::placeholder{color:#C8CFDB;font-family:inherit;font-size:.9rem}
+  /* 紙筆模式：收起輸入框，其他照舊 */
+  .papermode .ruled-box{display:none}
+  .papermode .sent input{display:none}
+  .papermode .sent{padding-bottom:7px}
+  .ansrow{display:flex;gap:9px;align-items:center;background:#fff;
+          border:1px solid #E4E2D8;border-radius:9px;padding:9px 11px;margin-bottom:7px}
+  .ansrow .i{width:22px;height:22px;border-radius:50%;background:var(--soft);
+             font-size:.75rem;flex:none;display:inline-flex;
+             align-items:center;justify-content:center;color:#5C6675}
+  .ansrow .w{flex:1;font-size:1.02rem;font-family:Georgia,"Times New Roman",serif;
+             word-break:break-word;color:var(--ink)}
+  .ansrow button{background:#fff;border:1.5px solid #C9C6B8;border-radius:8px;
+                 padding:5px 10px;font-size:.85rem;flex:none}
+  .paperhint{background:var(--soft);border-radius:9px;padding:10px 13px;
+             font-size:.85rem;color:#5C6675;line-height:1.6;margin-bottom:14px}
   .paratrial{margin-top:12px;background:var(--soft);border-radius:9px;
              padding:9px 12px;font-size:.83rem;color:#5C6675;line-height:1.5}
   .paratrial b{color:var(--board-green)}
@@ -300,29 +349,67 @@
      而如果用戶自己開咗「背景圖形」，成版 body 底色就會一齊印落去（張紙變晒色）。
      border 冇呢個問題，永遠印得出。 */
   #printArea{display:none}
+  /* ==================================================================
+     列印默書紙
+     ------------------------------------------------------------------
+     ⚠️ 兩個踩過嘅伏，唔好還原：
+
+     1. 唔可以用 position:absolute 包住 #printArea。
+        絕對定位嘅元素喺列印時分唔到頁 —— page-break-after 會被忽略，
+        結果答案頁黐晒喺默書紙下面同一版。改用 display:none 收起其他嘢。
+
+     2. 唔可以用 background gradient 畫線。
+        瀏覽器預設會剝走背景圖案先至列印，用背景畫線多數印出白紙一張。
+        全部線一律用 border 畫。
+
+     四線三格跟香港學校簿：4 條線、3 個格，幼藍線，基線紅色。
+     ================================================================== */
   @media print{
-    @page{margin:14mm 13mm}
+    @page{size:A4;margin:16mm 15mm 12mm}
     html,body{background:#fff !important}
-    body *{visibility:hidden}
-    #printArea,#printArea *{visibility:visible}
-    #printArea{display:block;position:absolute;left:0;top:0;width:100%;background:#fff}
+    body>*{display:none !important}
+    #printArea{display:block !important}
+    #printArea *{visibility:visible}
+
     .sheet{page-break-after:always;color:#000;background:#fff;
-           font-family:Georgia,"Times New Roman",serif}
+           font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
     .sheet:last-child{page-break-after:auto}
-    .sheet-head{border-bottom:1.2pt solid #000;padding-bottom:5pt;margin-bottom:6pt}
-    .sheet-head h3{font-size:14pt;margin-bottom:5pt;
-                   font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
-    .sheet-head .blanks{font-size:10pt}
-    .sheet-sub{font-size:8.5pt;color:#555;margin-bottom:2mm;
-               font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
-    .prow{display:flex;align-items:flex-end;gap:5mm;padding-top:11mm}
-    .prow .num{width:7mm;margin-right:5mm;font-size:11pt;text-align:right;line-height:1}
-    .prow .pline{flex:1;height:0;border-bottom:.5pt solid #000}
-    .keyrow{display:flex;gap:5mm;font-size:12pt;padding:2.6mm 0;
-            border-bottom:.4pt solid #BBB}
-    .keyrow .num{width:7mm;margin-right:5mm;text-align:right}
-    .sheet-foot{margin-top:7mm;font-size:8pt;color:#666;
-                font-family:"PingFang HK","Microsoft JhengHei",sans-serif}
+
+    .sheet-head{display:flex;align-items:flex-end;justify-content:space-between;
+                border-bottom:1.6pt solid #000;padding-bottom:3.5mm}
+    .sheet-head .t{font-size:15pt;font-weight:700}
+    .sheet-head .t small{display:block;font-size:8.5pt;font-weight:400;color:#555;
+                         letter-spacing:.16em;margin-top:1mm;
+                         font-family:Georgia,"Times New Roman",serif}
+    .sheet-head .brand{font-size:8pt;color:#666;text-align:right;line-height:1.5}
+
+    .meta{display:flex;gap:6mm;margin-top:5mm;font-size:10pt;align-items:flex-end}
+    .meta .f{display:flex;align-items:flex-end;gap:2mm}
+    .meta .u{border-bottom:.7pt solid #000;height:5.5mm}
+    .u-name{width:44mm}.u-date{width:32mm}.u-score{width:14mm}
+    .meta .sep{font-size:10pt;padding-bottom:.5mm}
+
+    .rows{margin-top:6mm}
+    .prow{display:flex;align-items:stretch;margin-bottom:4.5mm;page-break-inside:avoid}
+    .prow .num{width:9mm;flex:none;font-size:11pt;text-align:right;padding-right:3mm;
+               display:flex;align-items:flex-end;padding-bottom:3.4mm;color:#333;
+               font-family:Georgia,"Times New Roman",serif}
+    .rule{flex:1;border-top:.5pt solid #8FA8C4}
+    .rule .g{border-bottom:.5pt solid #8FA8C4}
+    .rule .g1{height:4.2mm}
+    .rule .g2{height:4.2mm;border-bottom-width:.9pt;border-bottom-color:#C0392B}
+    .rule .g3{height:4.2mm}
+
+    .ans-note{font-size:9pt;color:#555;margin-top:4mm;line-height:1.6}
+    .ans{margin-top:6mm;column-count:2;column-gap:14mm}
+    .ans .a{display:flex;font-size:12pt;padding:3.2mm 0;
+            border-bottom:.4pt solid #D6DCE3;break-inside:avoid}
+    .ans .a .num{width:9mm;text-align:right;padding-right:3.5mm;color:#666;
+                 font-family:Georgia,"Times New Roman",serif;font-size:10pt}
+    .ans .a .w{font-family:Georgia,"Times New Roman",serif;letter-spacing:.02em}
+
+    .sheet-foot{margin-top:10mm;border-top:.5pt solid #C9D0D8;padding-top:2.5mm;
+                display:flex;justify-content:space-between;font-size:7.5pt;color:#777}
   }
   @media (max-width:480px){
     .opts{grid-template-columns:1fr}
@@ -387,11 +474,10 @@ I like fruit."></textarea>
         <button class="ghost" id="btnDel">刪除</button>
       </div>
       <!-- 淡色細字，同其他 hint 同一級別，唔搶「開始默書」個掣。
-           一定要用 <a target="_blank">，唔可以用 window.open()：
-           iOS Safari 會當 JS 開新分頁係彈出視窗擋咗（見 iOS 手勢鏈教訓）。 -->
-      <a class="plusline" href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">
-        想俾小朋友每日都學新字？貼堂 Plus 每星期幫你安排好晒 →
-      </a>
+           而家開嘅係站內 modal（唔係開新分頁），所以用 button 冇 iOS 彈窗問題。 -->
+      <button class="plusline" id="plusLine">
+        想默成段短文？貼堂 Plus 一次過 HK$88，永久用 →
+      </button>
     </div>
 
     <div class="card">
@@ -421,6 +507,13 @@ I like fruit."></textarea>
           <select id="optOrder">
             <option value="seq">照詞表順序</option>
             <option value="shuffle" selected>隨機打亂</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>作答方式</label>
+          <select id="optAnswerMode">
+            <option value="type" selected>喺手機打字（自動批改）</option>
+            <option value="paper">寫喺紙上（只讀，唔批改）</option>
           </select>
         </div>
         <div class="opt">
@@ -589,15 +682,51 @@ I like fruit."></textarea>
   <div class="modal hidden" id="plusModal">
     <div class="modal-box">
       <h3>段落默書係 貼堂 Plus 功能</h3>
-      <p id="plusIntro">輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip
-         會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。</p>
+      <p id="plusIntro">一次過 HK$88，永久用，唔使月月俾。</p>
+
+      <!-- 付款區。手機用連結（家長就係用緊部手機，冇第二部機 scan QR），
+           QR 圖淨係做電腦／後備。兩個都擺，家長自己揀慣用嗰個。 -->
+      <div class="paybox" id="payBox">
+        <div class="payprice">HK$<b>88</b> 一次過 · 永久解鎖段落默書</div>
+        <div class="payrow">
+          <!-- PayMe 有 paylink，手機撳一下直接跳入 app，摩擦力最低，所以排第一。 -->
+          <a class="paybtn payme" id="payPayme"
+             href="https://payme.hsbc/8107adf892b44487956ab90a42e663a7"
+             target="_blank" rel="noopener">用 PayMe 付款（撳一下）</a>
+          <!-- AlipayHK 個人收款碼冇分享連結（要商戶戶口先有，要 BR）。
+               所以呢個唔可以做成連結，只可以出 QR，教佢「掃一掃 → 相簿」。 -->
+          <button class="paybtn alipay" id="payAlipay">用 AlipayHK 付款</button>
+        </div>
+
+        <div class="payqr hidden" id="alipayBox">
+          <img src="pay/alipay.png" alt="AlipayHK 收款碼（HK$88）" loading="lazy">
+          <ol class="paysteps">
+            <li>長按上面個 QR，揀「儲存圖片」</li>
+            <li>開 AlipayHK → 掃一掃 → 撳右上角相簿，揀返張圖</li>
+            <li>金額已經設定好 HK$88，確認付款</li>
+          </ol>
+        </div>
+
+        <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
+        <div class="payqr hidden" id="paymeQrBox">
+          <img src="pay/payme.png" alt="PayMe 收款碼" loading="lazy">
+          <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
+        </div>
+
+        <ol class="paysteps payafter">
+          <li>付款之後 cap 低個付款畫面</li>
+          <li>WhatsApp 張截圖去 <a id="payWa" href="https://wa.me/85298215212?text=%E8%B2%BC%E5%A0%82%20Plus%20%E4%BB%98%E6%AC%BE%E6%88%AA%E5%9C%96" target="_blank" rel="noopener">呢度</a>，或者 email 去 tiptong.hk@gmail.com</li>
+          <li>我會喺 24 小時內回一條解鎖碼俾你</li>
+        </ol>
+      </div>
+
+      <p class="paycodehint">已經收到解鎖碼？喺下面輸入：</p>
       <input type="text" id="plusInput" placeholder="TT-XXXX-XXXX" autocomplete="off"
              autocapitalize="characters" autocorrect="off" spellcheck="false">
       <div class="modal-msg" id="plusMsg"></div>
       <div class="btnrow">
         <button class="primary" id="btnPlusGo" style="flex:1">解鎖</button>
       </div>
-      <a class="buylink" id="plusBuy" href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">未有密碼？撳呢度訂閱 Plus</a>
       <button class="ghost" id="btnPlusClose">下次先</button>
     </div>
   </div>
@@ -620,10 +749,10 @@ I like fruit."></textarea>
         <button class="ghost" id="btnOptinSkip">下次先</button>
       </div>
       <div class="plusbox hidden" id="plusBox">
-        <div class="plusbox-h">📅 每日 5 個字，唔使你自己諗</div>
+        <div class="plusbox-h">📖 默完單字，試下默成段短文</div>
         <p class="plusbox-p" id="plusBoxP"></p>
-        <a href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener">睇下貼堂 Plus</a>
-        <button class="ghost" id="btnPlusBoxSkip">唔使喇，唔好再顯示</button>
+        <button class="plusbox-cta" id="plusBoxGo">睇下貼堂 Plus</button>
+        <button class="ghost" id="btnPlusBoxSkip">唔使喇</button>
       </div>
       <div class="btnrow" style="margin-top:18px">
         <button class="primary" id="btnRetryWrong">只再默錯字</button>
@@ -970,8 +1099,15 @@ I like fruit."></textarea>
 
   /* ---------- practice state ---------- */
   var queue=[],total=0,idx=0,firstTry={},wrongSet={},answered=false,statusMap=[];
+  /* 紙筆模式：照用同一個練習畫面，只係收起輸入框同批改。
+     唔另起一個 view —— 進度點、🔊、🐢、停頓、亂序全部照用返，
+     少一套 code 就少一套要維護同會壞嘅嘢。 */
+  var paperMode=false;
 
   function startPractice(list){
+    paperMode=($('optAnswerMode').value==='paper');
+    $('viewPractice').classList.toggle('papermode',paperMode);
+    if(paperMode)track('paper_start','word');
     queue=list.slice();
     if($('optOrder').value==='shuffle') shuffle(queue);
     total=queue.length;idx=0;firstTry={};wrongSet={};statusMap=queue.map(function(){return 0});
@@ -983,12 +1119,20 @@ I like fruit."></textarea>
     var bar=$('progressBar');bar.innerHTML='';
     for(var i=0;i<queue.length;i++){
       var d=document.createElement('span');
-      d.className='pdot'+(i<idx?(statusMap[i]===2?' wrong':' done'):(i===idx?' now':''));
+      d.className='pdot'+(i<idx?((!paperMode&&statusMap[i]===2)?' wrong':' done'):(i===idx?' now':''));
       bar.appendChild(d);
     }
     $('countLabel').textContent='第 '+Math.min(idx+1,queue.length)+' / '+queue.length+' 個';
   }
   function nextWordUI(auto){
+    if(paperMode){
+      answered=false;
+      $('feedback').innerHTML='';
+      $('btnCheck').textContent=(idx+1>=queue.length)?'睇答案 →':'下一個字 →';
+      renderProgress();
+      if(auto) setTimeout(function(){speak(queue[idx],false)},parseInt($('optGap').value,10)||900);
+      return;
+    }
     // 內置瀏覽器係已知高危，唔等守門狗，一開波就畀出路。
     // 真係讀到聲嘅話 u.onstart 會即刻 hideNoSound()，唔會阻住正常用戶。
     if(isInAppBrowser()) showNoSound();
@@ -1004,6 +1148,11 @@ I like fruit."></textarea>
 
   function checkAnswer(){
     if(idx>=queue.length) return;
+    if(paperMode){            // 唔收答案，直接落下一個
+      idx++;
+      if(idx>=queue.length){showResult()}else{nextWordUI(true)}
+      return;
+    }
     var word=queue[idx];
     if(!answered){
       var ok=normalize($('answerInput').value)===normalize(word);
@@ -1029,6 +1178,26 @@ I like fruit."></textarea>
   }
 
   function showResult(){
+    if(paperMode){
+      track('paper_done','word');
+      $('scoreNum').parentNode.style.display='none';
+      $('resultMsg').textContent='讀完喇，同小朋友對下答案';
+      var box=$('trickyBox');
+      box.classList.remove('hidden');
+      box.innerHTML='<div style="font-weight:700;margin-bottom:8px">正確答案</div>'+
+        queue.map(function(w,i){
+          return '<div class="ansrow"><span class="i">'+(i+1)+'</span>'+
+                 '<span class="w">'+escapeHtml(w)+'</span>'+
+                 '<button type="button" data-say="'+i+'">🔊</button></div>';
+        }).join('');
+      $('btnRetryWrong').style.display='none';
+      $('optinBox').classList.add('hidden');
+      $('plusBox').classList.add('hidden');
+      bumpRuns();
+      show('result');
+      return;
+    }
+    $('scoreNum').parentNode.style.display='';
     var list=Object.keys(firstTry);
     var right=list.filter(function(w){return firstTry[w]}).length;
     var score=list.length?Math.round(right/list.length*100):0;
@@ -1057,8 +1226,8 @@ I like fruit."></textarea>
     $('plusBox').classList.toggle('hidden',
       !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
     if(!$('plusBox').classList.contains('hidden')){
-      $('plusBoxP').textContent='你已經用咗貼堂 '+runs+' 次。想每個星期都有新詞表同短文，'+
-        '唔使自己揀字、唔使自己打，可以睇下 Plus。';
+      $('plusBoxP').textContent='你已經用咗貼堂 '+runs+' 次。段落默書會逐句慢讀、標點分開讀，'+
+        '仲會分開計串字同標點錯。一次過 HK$'+PLUS_PRICE+'，永久用。';
     }
 
     show('result');
@@ -1075,35 +1244,49 @@ I like fruit."></textarea>
     }catch(e){n=0}
     return n;
   }
-  function plusHintOff(){
-    try{return localStorage.getItem('dc_plushint')==='off'}catch(e){return false}
-  }
+  function plusHintOff(){return skipCount('dc_plushint')>=SKIP_MAX}
 
   /* ==================================================================
-     段落默書（Plus）
+     段落默書（Plus）—— 一次性買斷 HK$88
      ------------------------------------------------------------------
-     鎖：唔用 Payhip licence key API —— Payhip 嘅 licence key 功能只出現喺
-     Digital Product，而 recurring 月費只支援 Membership，兩者夾唔埋。
-     改用「每月密碼」：密碼寫喺 Payhip 會員區嘅帖文入面（要真登入先睇到，
-     嗰度先係真正把關嘅地方），呢度淨係核對。
-     密碼用 SHA-256 存 hash，唔存明文 —— view source 見到 hash 都用唔到。
-     ⚠️ 已知限制：識用 devtools 嘅人照樣繞得過。段落默書零邊際成本，
-        被繞過嘅代價封頂喺「嗰個人冇畀錢用咗」，唔會蝕錢，接受呢個風險。
+     收款：PayMe / AlipayHK，家長 cap 圖俾我，我人手發一條獨立解鎖碼。
+     刻意唔用 Payhip：47 個人入過 sales page、0 單，而 Payhip 訂閱制結帳
+     強制開戶 + 填卡（Membership 產品結構性咁做，關唔到）。0 訂單階段
+     優先減摩擦力，人手處理係已知並接受嘅代價，收到錢之後先自動化。
+
+     解鎖碼設計：唔用固定密碼表（一個人洩漏 = 全部人用得），
+     改用「serial + 校驗碼」——每個買家一條唯一碼，我唔使每賣一單就改 code
+     重新部署。碼由 SECRET 算出，app 離線核對得到。
+       格式：TT-XXXX-YYYY   XXXX = 隨機序號   YYYY = sha256(SECRET|XXXX) 頭 4 位
+     發碼工具：喺網址後面加 #gen 就會出，只有你知（見 initGen）。
+
+     ⚠️ 已知限制：SECRET 喺前端，識 devtools 嘅人自己砌得出碼。段落默書零邊際
+        成本，被繞過嘅代價封頂喺「嗰個人冇畀錢用咗」，接受。
+     ⚠️ 改 SECRET = 所有已發出嘅碼即刻失效，唔好亂改。
      ================================================================== */
-  var PLUS_HASHES=[
-    '0e4f13335e9efef548ad34bfac9f47021bcb869257e05480a370b8ee70df6841', /* 9月 */
-    '48052dbbc5c0a27494706aee3d66e2da6e21309bd094abfc29f3e8a17e1e68c6', /* 10月 */
-    'f8488562855c01f8689347e201c00a69d38b0a16041f9748a7fcb79d0907d61c', /* 11月 */
-    '500630788b792c10d7c2fdae6838daf680e04ed75fe44869cd1e54e7e094ddc6', /* 12月 */
-    'fc28ac60daa3c0f27d488086397ddf4bb5d336ed86f3d321c56e743435f7e4ec', /* 1月 */
-    '8dc223571ba106da7f79b2915e8178dd310ce0315dd2f98333fe638917da52c3', /* 2月 */
-    '9d94786a5b80945bc982ed13a54acbe9b8a6cbc7f384d7f2566a69ef62e0d62d', /* 3月 */
-    '26fa6b41520666528ef3c1aea2b87efd0769d99754351b94cc4bda72d551276a', /* 4月 */
-    'bc477a8445b6716ba7b5b7c9ec3d30fbbe328dee0700ae4a6553c96c9f0c92a0', /* 5月 */
-    'b4ec1a7839580a6c696b4a4058414c0c4f4f2eb34ff270800e5735576575b07d', /* 6月 */
-    'a4168e8e4fb145e1822efc498080f1a6ba16458e7e6cf18b129c04fdacd6e79c', /* 7月 */
-    'fc59cd409853a6c5f2ac14013ffb76ccc7981a8650cf8d342f3738fa823777c9'  /* 8月 */
-  ];
+  var PLUS_PRICE='88';
+  var PLUS_SECRET='tiptong-2026-plus-v1';      /* 改咗 = 舊碼全部作廢 */
+  var CODE_ABC='23456789ABCDEFGHJKLMNPQRSTUVWXYZ';  /* 剔走 0O1I，避免家長打錯 */
+
+  function codeCheck(serial){
+    var h=sha256Hex(PLUS_SECRET+'|'+serial),out='',i;
+    for(i=0;i<4;i++)out+=CODE_ABC.charAt(parseInt(h.substr(i*2,2),16)%CODE_ABC.length);
+    return out;
+  }
+  function codeNormalize(v){
+    return (v||'').toUpperCase().replace(/[^0-9A-Z]/g,'');   /* 連 - 同空格一齊剷走 */
+  }
+  function codeValid(v){
+    var c=codeNormalize(v);
+    if(c.length!==10||c.slice(0,2)!=='TT')return false;
+    var serial=c.slice(2,6);
+    return codeCheck(serial)===c.slice(6,10);
+  }
+  function codeMake(){
+    var serial='',i;
+    for(i=0;i<4;i++)serial+=CODE_ABC.charAt(Math.floor(Math.random()*CODE_ABC.length));
+    return 'TT-'+serial+'-'+codeCheck(serial);
+  }
 
   /* SHA-256，純 JS 同步實作。
      ⚠️ 唔用 crypto.subtle：佢淨係喺 secure context（https）先存在。
@@ -1163,18 +1346,15 @@ I like fruit."></textarea>
     for(i=0;i<8;i++)out+=('00000000'+(H[i]>>>0).toString(16)).slice(-8);
     return out;
   }
-  /* ⚠️ 解鎖有期限（35 日），呢個係刻意嘅。
-     原本 grill-me 定案係「入一次就永遠記住」，但嗰時個鎖係 Payhip licence key
-     ——取消訂閱 Payhip 會自動 disable 條 key。而家改用每月密碼，
-     如果永遠記住，取消咗訂閱嘅人喺嗰部機就永遠用得，每月換密碼變成完全冇意義。
-     30 日 = 每個月要返 Payhip 攞返新密碼一次；反正每星期都要去攞詞表，
-     順手嘅事。想改返永久：DAYS 設做一個好大嘅數就得。 */
-  var PLUS_DAYS=30;
+  /* 一次性買斷 = 永久解鎖，冇到期。
+     舊版係 30 日到期（配合每月密碼）。轉一次性之後如果留住到期邏輯，
+     買咗嘅人一個月後會被鎖返出去 —— 直接違反「買咗係永久」嘅承諾。
+     舊 localStorage 入面嘅 t 照讀得返，但唔再參與判斷。 */
   function plusState(){
     try{
       var raw=localStorage.getItem('dc_plus');
       if(!raw)return null;
-      if(raw==='1'){            // 舊格式，當今日先解鎖，唔好即刻踢走現有用戶
+      if(raw==='1'){            // 最舊格式，當今日先解鎖，唔好踢走現有用戶
         var o={h:'',t:Date.now()};
         localStorage.setItem('dc_plus',JSON.stringify(o));
         return o;
@@ -1182,32 +1362,29 @@ I like fruit."></textarea>
       return JSON.parse(raw);
     }catch(e){return null}
   }
+  /* 用過每月密碼解鎖嘅早期用戶（dc_plus 有 t），一律當永久，唔可以反口。 */
   function plusUnlocked(){
     var st=plusState();
-    if(!st||!st.t)return false;
-    return (Date.now()-st.t) < PLUS_DAYS*24*60*60*1000;
+    return !!(st&&st.t);
   }
   function setPlusUnlocked(h){
     try{localStorage.setItem('dc_plus',JSON.stringify({h:h||'',t:Date.now()}))}catch(e){}
   }
-  function plusExpired(){
-    var st=plusState();
-    return !!(st&&st.t&&(Date.now()-st.t)>=PLUS_DAYS*24*60*60*1000);
-  }
+  function plusExpired(){return false}   /* 永久制，永遠唔會過期 */
 
   function openPlusModal(){
     var intro=$('plusIntro');
     if(intro){
-      intro.textContent=plusExpired()
-        ? '新一個月喇，要輸入返今個月嘅密碼。喺你 Payhip 會員區嘅帖文度攞，同每星期嘅詞表擺喺一齊。'
-        : (paraUsed()>=PARA_FREE
-          ? '你已經試咗 '+PARA_FREE+' 次段落默書。想繼續用，可以訂 Plus；已經有密碼就喺下面輸入。'
-          : '輸入你嘅 Plus 密碼就即刻解鎖。密碼喺你 Payhip 會員區嘅帖文度攞到，同每星期嘅詞表擺喺一齊。');
+      intro.textContent = paraUsed()>=PARA_FREE
+        ? '你已經試咗 '+PARA_FREE+' 次段落默書。一次過 HK$'+PLUS_PRICE+'，永久用，唔使月月俾。'
+        : '段落默書一次過 HK$'+PLUS_PRICE+'，永久用，唔使月月俾。';
     }
     $('plusMsg').textContent='';$('plusMsg').className='modal-msg';
     $('plusInput').value='';
     $('plusModal').classList.remove('hidden');
-    setTimeout(function(){$('plusInput').focus()},50);
+    track('pay_view');
+    /* 唔自動 focus 個輸入框：一開就彈鍵盤會遮住成個付款區，
+       而大部分人開呢個 modal 係為咗付款，唔係為咗入碼。 */
   }
   function closePlusModal(){$('plusModal').classList.add('hidden')}
 
@@ -1331,7 +1508,7 @@ I like fruit."></textarea>
     return out.length?out:[{t:text,p:false}];
   }
 
-  var paraRun=0,paraTimer=null;
+  var paraRun=0,paraTimer=null,paraFinishHook=null;
   function setProg(i,txt){
     for(var n=0;n<paraList.length;n++){
       var el=document.querySelector('[data-prog="'+n+'"]');
@@ -1402,7 +1579,7 @@ I like fruit."></textarea>
     }
 
     if(n===0){                              // 成句一次過
-      playChunk(raw,function(){setProg(-1,'')});
+      playChunk(raw,function(){setProg(-1,'');if(paraFinishHook)paraFinishHook()});
       return;
     }
 
@@ -1424,7 +1601,9 @@ I like fruit."></textarea>
     function step(){
       if(run!==paraRun)return;
       if(k>=seq.length){setProg(i,'✓ 讀完');
-        paraTimer=setTimeout(function(){if(run===paraRun)setProg(-1,'')},1500);return}
+        paraTimer=setTimeout(function(){if(run===paraRun)setProg(-1,'')},1500);
+        if(paraFinishHook)paraFinishHook();
+        return}
       var it=seq[k++];
       setProg(i,'🔊 第 '+(it.ci+1)+'／'+chunks.length+' 組　第 '+it.r+' 次'+(it.isP?'　（標點）':''));
       playChunk(it.t,function(){
@@ -1456,6 +1635,7 @@ I like fruit."></textarea>
     });
     $('paraCount').textContent='第 '+(paraIdx+1)+' / '+paraList.length+' 句';
     $('btnParaNext').textContent=(paraIdx+1>=paraList.length)?'🔊 再讀最後一句':'▶ 讀下一句';
+    $('btnParaCheck').textContent=paperMode?'睇答案 →':'全部對答案 ✓';
     showParaTrial();
   }
 
@@ -1492,6 +1672,9 @@ I like fruit."></textarea>
     var raw=$('wordInput').value;
     paraList=splitSentences(raw);
     if(!paraList.length){alert('請先喺上面貼一段英文短文');return}
+    paperMode=($('optAnswerMode').value==='paper');
+    $('viewPara').classList.toggle('papermode',paperMode);
+    if(paperMode)track('paper_start','para');
     paraIdx=0;
     if(isInAppBrowser())$('paraNoSound').classList.remove('hidden');
     show('para');
@@ -1564,6 +1747,23 @@ I like fruit."></textarea>
   }
 
   function showParaResult(){
+    if(paperMode){
+      track('paper_done','para');
+      var box2=$('paraMarks');box2.innerHTML='';
+      paraList.forEach(function(sent,i){
+        var d=document.createElement('div');
+        d.className='ansrow';
+        d.innerHTML='<span class="i">'+(i+1)+'</span>'+
+                    '<span class="w">'+escapeHtml(sent)+'</span>'+
+                    '<button type="button" data-psay="'+i+'">🔊</button>';
+        box2.appendChild(d);
+      });
+      $('paraScoreLabel').textContent='對答案';
+      document.querySelector('#viewParaResult .legend').classList.add('hidden');
+      show('pararesult');
+      return;
+    }
+    document.querySelector('#viewParaResult .legend').classList.remove('hidden');
     var ans=paraAnswers();
     var box=$('paraMarks');box.innerHTML='';
     var totalSpell=0,totalPunct=0,totalCase=0,perfect=0;
@@ -1619,8 +1819,11 @@ I like fruit."></textarea>
       box.insertAdjacentHTML('afterbegin',
         '<div class="paratrial" style="margin-bottom:14px">'+
         '🎁 你已經試晒 '+PARA_FREE+' 次段落默書。想繼續用，'+
-        '<a href="https://payhip.com/b/gWGaC" target="_blank" rel="noopener" '+
-        'style="color:var(--board-green);font-weight:700">睇下貼堂 Plus</a>。</div>');
+        '<button id="paraTrialGo" style="background:none;border:0;padding:0;font:inherit;'+
+        'color:var(--board-green);font-weight:700;text-decoration:underline;cursor:pointer">'+
+        '一次過 HK$'+PLUS_PRICE+'永久解鎖</button>。</div>');
+      var ptg=$('paraTrialGo');
+      if(ptg)ptg.onclick=function(){track('plus_click','para_result');openPlusModal()};
     }
     $('paraScoreLabel').textContent=sc.score+' 分';
     show('pararesult');
@@ -1664,16 +1867,18 @@ I like fruit."></textarea>
     if(e.target===this)closePlusModal();   // 撳背景都關得到
   });
   $('btnPlusGo').onclick=function(){
-    var v=($('plusInput').value||'').trim().toUpperCase();
+    var v=($('plusInput').value||'').trim();
     var msg=$('plusMsg');
-    if(!v){msg.className='modal-msg err';msg.textContent='請輸入密碼';return}
-    var hv=sha256Hex(v);
-    if(PLUS_HASHES.indexOf(hv)>=0){
-      track('para_unlock');
-      setPlusUnlocked(hv);closePlusModal();startPara();
+    if(!v){msg.className='modal-msg err';msg.textContent='請輸入解鎖碼';return}
+    if(codeValid(v)){
+      track('para_unlock',codeNormalize(v));   /* 記低邊條碼用咗，方便對數 */
+      setPlusUnlocked(codeNormalize(v));
+      closePlusModal();startPara();
     }else{
+      track('code_bad');
       msg.className='modal-msg err';
-      msg.textContent='呢個密碼唔啱，檢查下有冇打錯？密碼喺 Payhip 會員區帖文入面。';
+      msg.textContent='呢個解鎖碼唔啱。碼係 TT- 開頭，一共 10 個字，'+
+        '大細階冇分。打漏咗一個字都會唔啱，檢查下再試。';
     }
   };
   $('plusInput').addEventListener('keydown',function(e){
@@ -1742,38 +1947,74 @@ I like fruit."></textarea>
   }
 
   $('btnParaQuit').onclick=function(){stopParaPlayback();show('setup')};
+  $('paraMarks').addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('button'):null;
+    if(!b||b.dataset.psay===undefined)return;
+    unlockSpeech();
+    speakSentence(+b.dataset.psay,false);
+  });
   $('btnParaBack').onclick=function(){show('setup')};
   $('btnParaRetry').onclick=function(){paraIdx=0;show('para');renderSentList();setParaFocus(0)};
 
   /* ---------- print ---------- */
+  var ROWS_PER_PAGE=16;   // 實測 A4 啱啱好填滿一版
   function buildPrint(){
     var words=getWords();
     if(!words.length){alert('請先貼上詞表');return false}
     var t=new Date();
     var dateStr=t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日';
 
-    var rows=words.map(function(w,i){
-      return '<div class="prow"><div class="num">'+(i+1)+'.</div><div class="pline"></div></div>';
-    }).join('');
-
-    var html='<div class="sheet">'+
-      '<div class="sheet-head">'+
-        '<h3>英文默書 English Dictation</h3>'+
-        '<div class="blanks">姓名 ______________　　日期 ____________　　分數 ______ / '+words.length+'</div>'+
-      '</div>'+
-      rows+
-      '<div class="sheet-foot">貼堂 TipTong · '+dateStr+'</div>'+
+    function head(title,en){
+      return '<div class="sheet-head">'+
+        '<div class="t">'+title+'<small>'+en+'</small></div>'+
+        '<div class="brand">貼堂 TipTong<br>tiptonghk.com</div>'+
       '</div>';
+    }
+    function foot(page,total){
+      return '<div class="sheet-foot"><span>貼堂 TipTong · '+dateStr+'</span>'+
+             '<span>第 '+page+' / '+total+' 頁</span></div>';
+    }
+    function ruleRow(n){
+      return '<div class="prow"><div class="num">'+n+'.</div>'+
+        '<div class="rule"><div class="g g1"></div><div class="g g2"></div>'+
+        '<div class="g g3"></div></div></div>';
+    }
+
+    // 超過一版就分頁，唔好夾硬迫細
+    var sheets=Math.ceil(words.length/ROWS_PER_PAGE);
+    var total=sheets+($('optKey').checked?1:0);
+    var html='',p=0;
+    for(var sIdx=0;sIdx<sheets;sIdx++){
+      var from=sIdx*ROWS_PER_PAGE, to=Math.min(from+ROWS_PER_PAGE,words.length);
+      var rows='';
+      for(var i=from;i<to;i++) rows+=ruleRow(i+1);
+      p++;
+      html+='<div class="sheet">'+
+        head('英文默書','ENGLISH DICTATION')+
+        '<div class="meta">'+
+          '<div class="f"><span>姓名</span><div class="u u-name"></div></div>'+
+          '<div class="f"><span>日期</span><div class="u u-date"></div></div>'+
+          '<div class="f"><span>分數</span><div class="u u-score"></div>'+
+            '<span class="sep">/ '+words.length+'</span></div>'+
+        '</div>'+
+        '<div class="rows">'+rows+'</div>'+
+        foot(p,total)+
+      '</div>';
+    }
 
     if($('optKey').checked){
+      p++;
       html+='<div class="sheet">'+
-        '<div class="sheet-head"><h3>答案頁 Answer Key</h3>'+
-        '<div class="blanks">'+dateStr+'</div></div>'+
-        words.map(function(w,i){
-          return '<div class="keyrow"><div class="num">'+(i+1)+'.</div><div>'+escapeHtml(w)+'</div></div>';
-        }).join('')+
-        '<div class="sheet-foot">貼堂 TipTong</div>'+
-        '</div>';
+        head('答案頁','ANSWER KEY')+
+        '<div class="ans-note">畀家長對答案用。建議小朋友寫完先攞出嚟，唔好放喺佢面前。</div>'+
+        '<div class="ans">'+
+          words.map(function(w,i){
+            return '<div class="a"><div class="num">'+(i+1)+'.</div>'+
+                   '<div class="w">'+escapeHtml(w)+'</div></div>';
+          }).join('')+
+        '</div>'+
+        foot(p,total)+
+      '</div>';
     }
     $('printArea').innerHTML=html;
     return true;
@@ -1866,9 +2107,25 @@ I like fruit."></textarea>
     return (window.navigator&&window.navigator.standalone===true) ||
            (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
   }
-  function a2hsDismissed(){
-    try{return localStorage.getItem('dc_a2hs')==='off'}catch(e){return false}
+  /* 「唔使喇」唔係一撳就永遠收起 —— 第一次撳走多數只係「而家唔得閒」。
+     撳夠 SKIP_MAX 次先當佢真係唔要，之後永不再現。
+     同一個機制亦用喺結果頁嘅 Plus 提示（見 plusHintOff）。 */
+  var SKIP_MAX=3;
+  function skipCount(key){
+    try{
+      var raw=localStorage.getItem(key);
+      if(!raw)return 0;
+      if(raw==='off')return SKIP_MAX;      // 舊格式：之前撳過就當佢已經表態
+      return parseInt(raw,10)||0;
+    }catch(e){return 0}
   }
+  function bumpSkip(key){
+    var n=skipCount(key)+1;
+    try{localStorage.setItem(key,String(n))}catch(e){}
+    return n;
+  }
+  function a2hsDismissed(){return skipCount('dc_a2hs')>=SKIP_MAX}
+
   var deferredPrompt=null;
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault();deferredPrompt=e;
@@ -1905,7 +2162,7 @@ I like fruit."></textarea>
     $('a2hs').classList.add('hidden');
   };
   $('btnA2hsSkip').onclick=function(){
-    try{localStorage.setItem('dc_a2hs','off')}catch(e){}
+    track('pwa_skip',bumpSkip('dc_a2hs'));
     $('a2hs').classList.add('hidden');
   };
 
@@ -1947,6 +2204,12 @@ I like fruit."></textarea>
   $('btnCheck').onclick=checkAnswer;
   $('answerInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkAnswer()});
   $('btnQuit').onclick=function(){stopAudio();window.speechSynthesis&&speechSynthesis.cancel();show('setup')};
+  $('trickyBox').addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('button'):null;
+    if(!b||b.dataset.say===undefined)return;
+    unlockSpeech();unlockAudio();
+    speak(queue[+b.dataset.say],false);
+  });
   $('btnBackHome').onclick=function(){show('setup')};
   $('btnRetryAll').onclick=function(){startPractice(getWords())};
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
@@ -1955,15 +2218,31 @@ I like fruit."></textarea>
   function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
   $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
   (function(){
-    var a=document.querySelector('.plusline');
-    if(a)a.addEventListener('click',function(){track('plus_click','setup')});
-    var b=document.querySelector('#plusBox a');
-    if(b)b.addEventListener('click',function(){track('plus_click','result')});
-    var c=$('plusBuy');
-    if(c)c.addEventListener('click',function(){track('plus_click','modal')});
+    var a=$('plusLine');
+    if(a)a.onclick=function(){track('plus_click','setup');openPlusModal()};
+    var b=$('plusBoxGo');
+    if(b)b.onclick=function(){track('plus_click','result');openPlusModal()};
+    /* 付款掣：分開記 PayMe / AlipayHK，睇邊個渠道真係有人撳。
+       用 addEventListener 唔攔截 default，個連結照跳。 */
+    var p=$('payPayme');
+    if(p)p.addEventListener('click',function(){track('pay_click','payme')});
+    var al=$('payAlipay');
+    if(al)al.onclick=function(){
+      $('alipayBox').classList.toggle('hidden');
+      track('pay_click','alipay');
+    };
+    var wa=$('payWa');
+    if(wa)wa.addEventListener('click',function(){track('pay_click','whatsapp')});
+    var qr=$('btnPayQr');
+    if(qr)qr.onclick=function(){
+      $('paymeQrBox').classList.toggle('hidden');
+      this.textContent=$('paymeQrBox').classList.contains('hidden')
+        ? '用緊電腦？撳呢度出 PayMe QR' : '收起 QR';
+      track('pay_click','payme_qr');
+    };
   })();
   $('btnPlusBoxSkip').onclick=function(){
-    try{localStorage.setItem('dc_plushint','off')}catch(e){}
+    track('plus_skip',bumpSkip('dc_plushint'));
     $('plusBox').classList.add('hidden');
   };
   $('btnOptin').onclick=function(){
@@ -1989,6 +2268,57 @@ I like fruit."></textarea>
     });
   };
   $('optinEmail').addEventListener('keydown',function(e){if(e.key==='Enter')$('btnOptin').click()});
+
+  /* ==================================================================
+     發碼工具 —— 開 https://tiptong.hk/#gen 就會出，家長唔會撞到。
+     用途：收到 PayMe／AlipayHK 截圖之後，撳一下出一條碼，copy 返俾佢。
+     已發出嘅碼會存喺你部機 localStorage，方便對數（唔會上傳）。
+     ⚠️ 呢個只係方便工具，唔係保安措施 —— SECRET 本身喺前端，
+        真正防繞過要伺服器，而 0 訂單階段唔起伺服器（見上面註解）。
+     ================================================================== */
+  function initGen(){
+    if(location.hash!=='#gen')return;
+    var box=document.createElement('div');
+    box.id='genBox';
+    box.innerHTML='<h4>貼堂 Plus 發碼工具</h4>'+
+      '<div id="genOut">—</div>'+
+      '<button id="genNew">出新碼</button>'+
+      '<button id="genCopy">Copy</button>'+
+      '<button id="genClose">閂</button>'+
+      '<div id="genLog"></div>';
+    document.body.appendChild(box);
+    function log(){
+      var l=[];try{l=JSON.parse(localStorage.getItem('dc_issued')||'[]')}catch(e){}
+      document.getElementById('genLog').textContent=
+        '已發出 '+l.length+' 條：\n'+l.slice(-40).join('\n');
+    }
+    document.getElementById('genNew').onclick=function(){
+      var l=[];try{l=JSON.parse(localStorage.getItem('dc_issued')||'[]')}catch(e){}
+      /* 去重：serial 空間得 32^4，生日悖論之下發到幾百條就有機會撞。
+         撞咗唔會令個 app 出事（任何有效碼解鎖嘅嘢都一樣），但會對唔到數，
+         所以出碼時同已發出嘅比一比，撞到就重出。
+         ⚠️ 紀錄只喺呢部機，換機／清 cache 之後就查唔到舊碼，去重會失效。 */
+      var c,tries=0;
+      do{ c=codeMake(); tries++ }
+      while(tries<50 && l.join('|').indexOf(c)>=0);
+      document.getElementById('genOut').textContent=c;
+      l.push(new Date().toISOString().slice(0,10)+'  '+c);
+      try{localStorage.setItem('dc_issued',JSON.stringify(l))}catch(e){}
+      log();
+    };
+    document.getElementById('genCopy').onclick=function(){
+      var t=document.getElementById('genOut').textContent;
+      if(navigator.clipboard)navigator.clipboard.writeText(t);
+      this.textContent='Copy 咗 ✓';
+      var b=this;setTimeout(function(){b.textContent='Copy'},1200);
+    };
+    document.getElementById('genClose').onclick=function(){
+      box.remove();location.hash='';
+    };
+    log();
+  }
+  initGen();
+  window.addEventListener('hashchange',initGen);
 })();
 </script>
 </body>

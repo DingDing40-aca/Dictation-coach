@@ -147,6 +147,32 @@
   /* 版本號：唯一用途係一眼睇到部機載緊邊個版本，慳返「係咪 cache？」嘅來回。
      每次改動記得 +1。上到線收到錢之後可以拆走。 */
   .buildtag{text-align:center;font-size:.68rem;color:#C4C0B2;margin-top:9px}
+  .ocrbtn{position:relative;display:block;width:100%;margin-top:9px;padding:12px 74px 12px 13px;
+          background:#fff;border:1.5px solid var(--board-green);border-radius:11px;
+          text-align:left;font-family:inherit;cursor:pointer}
+  .ocrbtn:active{background:#F3F7F3}
+  .ocrbtn-t{display:block;font-size:.95rem;font-weight:700;color:var(--ink)}
+  .ocrbtn-s{display:block;font-size:.78rem;color:#7A8496;line-height:1.45;margin-top:3px}
+  .ocrbtn-tag{position:absolute;top:12px;right:12px;font-size:.66rem;font-weight:700;
+              background:var(--board-green);color:#fff;border-radius:5px;padding:2px 6px;
+              white-space:nowrap}
+  .ocrbtn-tag.free{background:#E8792B}
+  .ocrwarn{background:#FFF6E5;border:1.5px solid #E8C77A;border-radius:10px;
+           padding:11px 12px;text-align:left;margin:4px 0 11px}
+  .ocrwarn b{font-size:.92rem}
+  .ocrwarn p{font-size:.82rem;color:#5C6675;line-height:1.55;margin-top:5px}
+  .ocrtips{text-align:left;font-size:.82rem;color:#5C6675;line-height:1.6;
+           padding-left:19px;margin-bottom:13px}
+  .newtag{font-size:.6rem;font-weight:700;background:#E8792B;color:#fff;
+          border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;
+          letter-spacing:.5px}
+  .ocrtrial{background:#FFF3E8;border-radius:8px;padding:9px 11px;
+            font-size:.82rem;color:#8A4B12;margin-bottom:11px;text-align:left}
+  .ocrstate{margin-top:12px;font-size:.85rem;color:#5C6675;line-height:1.5}
+  .ocrstate.err{color:#C0392B}
+  .ocrbar{height:6px;background:#E4E0D2;border-radius:3px;margin-top:8px;overflow:hidden}
+  .ocrbar i{display:block;height:100%;width:0;background:var(--board-green);
+            transition:width .25s}
   /* ---- 發碼工具（#gen，只有擁有者用） ---- */
   #genBox{position:fixed;inset:0;background:#111;color:#eee;z-index:9999;
           padding:22px;font-family:ui-monospace,Menlo,monospace;overflow:auto}
@@ -465,6 +491,16 @@ I like fruit."></textarea>
         <button class="chip" id="btnDemo">▷ 試下單詞默書</button>
         <button class="chip" id="btnDemoPara">▷ 試下段落默書</button>
       </div>
+      <!-- OCR 自己一行：塞埋三個 chip 一行會迫到轉行，睇落好散。
+           而且呢個係付費功能，同兩個「試下」demo 唔同層次，唔應該平排。 -->
+      <button class="ocrbtn" id="btnOcr">
+        <span class="ocrbtn-t">📷 影詞表入字</span>
+        <span class="ocrbtn-s">影低學校印嘅詞語表，自動入字，唔使逐個打</span>
+        <span class="ocrbtn-tag" id="ocrTag">Plus</span>
+      </button>
+      <!-- 檔案輸入收埋：iOS 要 label／JS 觸發先彈到「影相 / 相簿」選單。
+           accept=image/* 加 capture 會強制即影，唔俾揀相簿，所以唔加 capture。 -->
+      <input type="file" id="ocrFile" accept="image/*" style="display:none">
       <div class="samplelab">冇帶詞表都試到。撳咗會自動填example，跟住撳下面個掣就開始。</div>
 
       <div class="saverow">
@@ -513,7 +549,7 @@ I like fruit."></textarea>
           </select>
         </div>
         <div class="opt">
-          <label>作答方式</label>
+          <label>作答方式 <span class="newtag">NEW</span></label>
           <select id="optAnswerMode">
             <option value="type" selected>喺手機打字（自動批改）</option>
             <option value="paper">寫喺紙上（只讀，唔批改）</option>
@@ -682,6 +718,28 @@ I like fruit."></textarea>
   </section>
 
   <!-- ============ Plus 解鎖 ============ -->
+  <!-- ============ OCR ============ -->
+  <div class="modal hidden" id="ocrModal">
+    <div class="modal-box">
+      <h3>📷 影詞表入字</h3>
+      <div class="ocrwarn">
+        <b>⚠️ 只影得學校<u>列印出嚟</u>嘅詞語表</b>
+        <p>電腦打字、印刷體先認得到。<b>手寫字認唔到</b>，包括老師手寫、小朋友抄低嗰份。</p>
+      </div>
+      <ul class="ocrtips">
+        <li>影正面，四邊入曬相，唔好歪</li>
+        <li>光線夠，唔好有陰影或者反光</li>
+        <li>影完可以自己改，認錯字改返就得</li>
+      </ul>
+      <div class="btnrow">
+        <button class="primary" id="btnOcrPick" style="flex:1">揀相 / 影相</button>
+      </div>
+      <div class="ocrtrial hidden" id="ocrTrial"></div>
+      <div class="ocrstate hidden" id="ocrState"></div>
+      <button class="ghost" id="btnOcrClose">閂</button>
+    </div>
+  </div>
+
   <div class="modal hidden" id="plusModal">
     <div class="modal-box">
       <h3>段落默書係 貼堂 Plus 功能</h3>
@@ -1164,7 +1222,18 @@ function tryNextImg(img){
     $('answerInput').focus();
     if(auto) setTimeout(function(){speak(queue[idx],false)},parseInt($('optGap').value,10)||900);
   }
-  function normalize(s){return s.trim().replace(/\s+/g,' ').toLowerCase()}
+  /* 撇號統一。實測家長回報：shouldn't／couldn't 明明打啱都判錯。
+     原因係詞表入面多數係彎撇號 U+2019（Word、網頁 copy 落嚟都係彎），
+     而手機打出嚟係直撇號 U+0027 —— iOS 仲會自動將直變彎，兩邊撞唔啱。
+     同類仲有彎引號同重音符 ` ´，一次過統一先比較。
+     ⚠️ 呢個要喺所有比較路徑都用，唔係淨係單詞嗰條：
+        單詞用 normalize，段落用 coreOf／stripPunct，三個都要。 */
+  function unifyQuotes(s){
+    return (s||'')
+      .replace(/[\u2018\u2019\u02BC\u02B9\u2032\u00B4\u0060]/g,"'")
+      .replace(/[\u201C\u201D\u2033]/g,'"');
+  }
+  function normalize(s){return unifyQuotes(s).trim().replace(/\s+/g,' ').toLowerCase()}
 
   function checkAnswer(){
     if(idx>=queue.length) return;
@@ -1705,8 +1774,8 @@ function tryNextImg(img){
 
   /* ---------- 批改：逐字對齊 + 分類錯誤 ---------- */
   function tokenize(s){return (s||'').trim().split(/\s+/).filter(Boolean)}
-  function coreOf(w){return (w||'').toLowerCase().replace(/[^a-z0-9']/g,'')}
-  function stripPunct(w){return (w||'').replace(/[^A-Za-z0-9']/g,'')}
+  function coreOf(w){return unifyQuotes(w).toLowerCase().replace(/[^a-z0-9']/g,'')}
+  function stripPunct(w){return unifyQuotes(w).replace(/[^A-Za-z0-9']/g,'')}
 
   /* 用編輯距離對齊（唔用 LCS）：串錯一個字要算「一個代入」，
      唔可以算成「漏咗一個 + 多咗一個」兩個錯。 */
@@ -2237,6 +2306,48 @@ function tryNextImg(img){
 
   function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
   $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
+  /* 免費試用一次。理由同段落默書一樣：實測 16 個人撞段落默書嘅牆、
+     14 個去咗睇價、0 個買 —— 冇試過就唔肯俾錢。OCR 更加要試，
+     因為家長根本唔知認得準唔準，冇試過嘅話 $88 係盲買。
+     只俾一次（唔係 3 次）：OCR 一次就睇得出準唔準，多俾只會少咗人買。 */
+  var OCR_FREE=1;
+  function ocrUsed(){
+    try{return parseInt(localStorage.getItem('dc_ocr_runs')||'0',10)||0}catch(e){return 0}
+  }
+  function bumpOcrUsed(){
+    var n=ocrUsed()+1;
+    try{localStorage.setItem('dc_ocr_runs',String(n))}catch(e){}
+    return n;
+  }
+  function ocrLeft(){return Math.max(0,OCR_FREE-ocrUsed())}
+  /* 標籤要即時反映狀態：家長一見到「Plus」就以為撳唔到，根本唔會試。 */
+  function refreshOcrTag(){
+    var t=$('ocrTag');
+    if(!t)return;
+    if(!plusUnlocked()&&ocrLeft()>0){t.textContent='免費試一次';t.className='ocrbtn-tag free'}
+    else{t.textContent='Plus';t.className='ocrbtn-tag'}
+  }
+  refreshOcrTag();
+
+  $('btnOcr').onclick=function(){
+    if(plusUnlocked()||ocrLeft()>0){openOcrModal();return}
+    /* 用完試用先撞牆。呢個 feature 本身就係買嘅理由，
+       所以撞牆嗰下要直接見到付款區。 */
+    track('ocr_wall');
+    track('plus_click','ocr');
+    openPlusModal();
+  };
+  $('btnOcrPick').onclick=function(){$('ocrFile').click()};
+  $('btnOcrClose').onclick=closeOcrModal;
+  $('ocrFile').onchange=function(){
+    var f=this.files&&this.files[0];
+    this.value='';              /* 清空，唔係揀返同一張相唔會觸發 onchange */
+    if(f)runOcr(f);
+  };
+  $('ocrModal').addEventListener('click',function(e){
+    if(e.target===this)closeOcrModal();
+  });
+
   (function(){
     var a=$('plusLine');
     if(a)a.onclick=function(){track('plus_click','setup');openPlusModal()};
@@ -2300,6 +2411,139 @@ function tryNextImg(img){
      圖片喺 HTML 解析階段就開始載，而 script 喺文件末先跑，
      用 addEventListener 綁嘅話 error 可能早過 listener，補救唔到。
      inline onerror 由解析嗰刻已經生效，先接得住。 */
+
+  /* ==================================================================
+     OCR：影學校列印出嚟嘅詞語表，自動入字（Plus 功能）
+     ------------------------------------------------------------------
+     ⚠️ 只支援印刷體。手寫辨識率太低，會變成家長投訴認錯字，
+        所以介面三個位都寫明「只影得列印出嚟嘅」，唔好淡化。
+     Tesseract.js 約 2-4MB，撳咗先由 CDN 落載，唔拖慢正常默書。
+     認完一定要俾人核對：OCR 唔會 100% 啱，直接開始默書把聲會讀錯字，
+     家長會以為個 app 壞咗，唔會知係認錯。
+     ================================================================== */
+  var TESS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+  var tessLoading=null;
+  function loadTesseract(){
+    if(window.Tesseract)return Promise.resolve();
+    if(tessLoading)return tessLoading;
+    tessLoading=new Promise(function(res,rej){
+      var t=document.createElement('script');
+      t.src=TESS_URL;
+      t.onload=function(){res()};
+      t.onerror=function(){tessLoading=null;rej(new Error('load'))};
+      document.head.appendChild(t);
+    });
+    return tessLoading;
+  }
+  function ocrSay(html,isErr){
+    var el=$('ocrState');
+    el.classList.remove('hidden');
+    el.className='ocrstate'+(isErr?' err':'');
+    el.innerHTML=html;
+  }
+  /* 相太大會令 OCR 好慢又食記憶體，先縮到長邊 1600px。
+     再細會蝕辨識率，1600 喺速度同準確度之間夠用。
+     ⚠️ 唔用 URL.createObjectURL：iPhone 出 HEIC，加上喺 in-app 瀏覽器
+        （由 FB／IG／GitHub app 開出嚟嗰種 WKWebView）blob URL 會載唔到，
+        實測會直接掟 Error: img。改用 FileReader 嘅 data URL，兼容闊好多。
+     ⚠️ 就算縮圖失敗都唔可以停 —— 見下面 runOcr，會退返去用原相。 */
+  function shrinkImage(file){
+    return new Promise(function(res,rej){
+      var fr=new FileReader();
+      fr.onerror=function(){rej(new Error('read'))};
+      fr.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          try{
+            var max=1600,w=img.naturalWidth,h=img.naturalHeight;
+            if(!w||!h){rej(new Error('size'));return}
+            var r=Math.min(1,max/Math.max(w,h));
+            var c=document.createElement('canvas');
+            c.width=Math.round(w*r);c.height=Math.round(h*r);
+            c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+            res(c);
+          }catch(e){rej(e)}
+        };
+        img.onerror=function(){rej(new Error('decode'))};
+        img.src=fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  /* 清理 OCR 出嚟嘅文字：
+     - 剷走行首編號（1. / 1) / (1)），詞表多數有
+     - 剷走純符號、單字母行（多數係雜訊）
+     - 有空格嘅成句唔拆開，段落默書要用 */
+  function cleanOcr(txt){
+    return txt.split(/\n+/).map(function(l){
+      return l.replace(/^\s*[\(\[]?\d{1,2}[\.\)\]]\s*/,'')
+              .replace(/[^A-Za-z0-9 '\u2019\-\.,!\?]/g,'')
+              .replace(/\s+/g,' ').trim();
+    }).filter(function(l){
+      return l && l.length>=2 && /[A-Za-z]/.test(l);
+    });
+  }
+  function runOcr(file){
+    ocrSay('準備緊…<div class="ocrbar"><i id="ocrBarI"></i></div>');
+    loadTesseract().then(function(){
+      ocrSay('認緊字…第一次要落載工具，可能等 10-30 秒。'+
+             '<div class="ocrbar"><i id="ocrBarI"></i></div>');
+      /* 縮圖失敗唔應該成個功能死。Tesseract 收得 File／Blob，
+         直接掉原相俾佢，慢啲但認到字，好過彈錯誤訊息趕走人。 */
+      return shrinkImage(file).catch(function(e){
+        console.warn('縮圖失敗，改用原相',e);
+        track('ocr_noshrink');
+        return file;
+      });
+    }).then(function(src){
+      return Tesseract.recognize(src,'eng',{
+        logger:function(m){
+          if(m.status==='recognizing text'){
+            var b=$('ocrBarI');
+            if(b)b.style.width=Math.round(m.progress*100)+'%';
+          }
+        }
+      });
+    }).then(function(r){
+      var lines=cleanOcr((r&&r.data&&r.data.text)||'');
+      if(!lines.length){
+        track('ocr_empty');
+        ocrSay('認唔到字。多數係影到手寫字，或者相太暗／太歪。'+
+               '記住只影得<b>學校列印出嚟</b>嗰張，再試多次？',true);
+        return;
+      }
+      $('wordInput').value=lines.join('\n');
+      /* 認到字先扣試用次數。認唔到／出錯都扣嘅話，
+         家長第一次影歪咗就冇機會再試，直接流失。 */
+      if(!plusUnlocked())bumpOcrUsed();
+      refreshOcrTag();
+      track('ocr_ok',String(lines.length));
+      closeOcrModal();
+      $('wordInput').scrollIntoView({behavior:'smooth',block:'center'});
+      alert('入咗 '+lines.length+' 行。\n\n請核對一次先開始 —— OCR 可能會認錯字，'+
+            '喺個框度直接改就得。');
+    }).catch(function(e){
+      track('ocr_fail');
+      /* 錯誤訊息要分得出係網絡定係張相本身，唔係家長淨係識重試同一張相。 */
+      var m=(e&&e.message)||'';
+      ocrSay(m==='load'
+        ? '落載工具失敗，可能係網絡唔穩，等陣再試。'
+        : '呢張相處理唔到。試下用相機直接影一張新嘅，或者換一張。',true);
+      console.error(e);
+    });
+  }
+  function openOcrModal(){
+    $('ocrState').classList.add('hidden');
+    var tip=$('ocrTrial');
+    if(tip){
+      tip.classList.toggle('hidden',plusUnlocked());
+      if(!plusUnlocked())tip.textContent='🎁 你有 '+ocrLeft()+' 次免費試用，成功認到字先計。';
+    }
+    $('ocrModal').classList.remove('hidden');
+    track('ocr_open',plusUnlocked()?'plus':'trial');
+  }
+  function closeOcrModal(){$('ocrModal').classList.add('hidden')}
 
   function initGen(){
     if(location.hash!=='#gen')return;

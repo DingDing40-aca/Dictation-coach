@@ -144,9 +144,13 @@
   .paysteps{margin:12px 0 0;padding-left:19px;font-size:.83rem;
             color:#5C6675;line-height:1.65}
   .paycodehint{font-size:.83rem;color:#5C6675;margin-bottom:7px}
-  /* 版本號：唯一用途係一眼睇到部機載緊邊個版本，慳返「係咪 cache？」嘅來回。
-     每次改動記得 +1。上到線收到錢之後可以拆走。 */
-  .buildtag{text-align:center;font-size:.68rem;color:#C4C0B2;margin-top:9px}
+  .payafter{border-top:1px dashed #D8D5C8;padding-top:13px;margin-top:13px;text-align:left}
+  .payafter-h{font-size:.88rem;font-weight:700;margin-bottom:9px}
+  .wabtn{display:block;text-align:center;padding:13px;border-radius:10px;
+         background:#25D366;color:#fff;font-weight:700;font-size:.98rem;
+         text-decoration:none}
+  .wabtn:active{opacity:.85}
+  .payafter-n{font-size:.78rem;color:#7A8496;line-height:1.6;margin-top:9px}
   .ocrbtn{position:relative;display:block;width:100%;margin-top:9px;padding:12px 74px 12px 13px;
           background:#fff;border:1.5px solid var(--board-green);border-radius:11px;
           text-align:left;font-family:inherit;cursor:pointer}
@@ -163,6 +167,20 @@
   .ocrwarn p{font-size:.82rem;color:#5C6675;line-height:1.55;margin-top:5px}
   .ocrtips{text-align:left;font-size:.82rem;color:#5C6675;line-height:1.6;
            padding-left:19px;margin-bottom:13px}
+  .pricing{border:2px solid var(--board-green)}
+  .phead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+  /* 品牌名退做細字加闊字距：唔應該同賣點爭注意力。 */
+  .pbrand{font-size:.72rem;letter-spacing:1.5px;color:var(--board-green);font-weight:700}
+  .pprice{font-size:.78rem;color:#7A8496;line-height:1}
+  .pprice b{font-size:1.95rem;color:var(--board-green);letter-spacing:-1px}
+  .pfeat{display:flex;gap:12px;margin-bottom:15px}
+  .pfeat-i{flex:0 0 38px;height:38px;border-radius:50%;background:#E8F0E9;
+           color:var(--board-green);display:flex;align-items:center;justify-content:center}
+  .pfeat-i svg{width:19px;height:19px}
+  .pfeat-t{font-size:1.02rem;font-weight:700;line-height:1.35;margin-bottom:3px}
+  .pfeat-s{font-size:.82rem;color:#7A8496;line-height:1.55}
+  .pfoot{border-top:1px solid #EAE7DA;margin-top:18px;padding-top:12px;
+         font-size:.75rem;color:#9AA3B0;text-align:center;margin-bottom:11px}
   .newtag{font-size:.6rem;font-weight:700;background:#E8792B;color:#fff;
           border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;
           letter-spacing:.5px}
@@ -356,8 +374,17 @@
      .modal 喺下面，兩者權重一樣 → 後者贏 → 加咗 hidden 都照顯示。
      結果係：一 load 個頁就彈出嚟，而且撳「下次先」關唔到。 */
   .modal.hidden{display:none}
+  /* ⚠️ max-height + overflow 一定要有。付款區內容長，冇呢兩行個框會
+     衝出畫面，「下次先」被推到螢幕以外 —— 家長關唔到窗，
+     連免費功能都用唔返，只可以熄咗個 tab。實測撞過。 */
   .modal-box{background:var(--paper);border-radius:14px;padding:22px 20px;
-             max-width:400px;width:100%;box-shadow:var(--shadow)}
+             max-width:400px;width:100%;box-shadow:var(--shadow);
+             max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+             position:relative}
+  /* 右上角永遠有個 ×，唔使碌到底都關到窗。 */
+  .modal-x{position:sticky;top:-6px;float:right;margin:-10px -6px 0 0;
+           width:34px;height:34px;border:0;background:none;font-size:1.5rem;
+           line-height:1;color:#9AA3B0;cursor:pointer;z-index:2}
   .modal-box h3{font-size:1.05rem;margin-bottom:8px}
   .modal-box p{font-size:.87rem;color:#5C6675;line-height:1.65;margin-bottom:13px}
   .modal-box input{width:100%;border:1.5px solid #D8D5C8;border-radius:10px;
@@ -579,6 +606,67 @@ I like fruit."></textarea>
         <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
       </div>
     </div>
+    <!-- 定價區。之前成個站淨係得一句「睇下貼堂 Plus」，
+         家長要撳入去先知賣幾多錢、包咩 —— 22 個 pay_view、0 單，
+         「唔知賣緊乜」係其中一個講得通嘅解釋。
+         擺喺列印卡下面：呢個位嘅人已經行完成個免費流程，
+         擺喺最頂反而似賣廣告，未用過就見到價錢會嚇走人。
+         買咗嘅人唔應該再見到，見 refreshPricing。 -->
+    <!-- 定價區。之前成個站淨係得一句「睇下貼堂 Plus」，
+         家長要撳入去先知賣幾多錢、包咩 —— 22 個 pay_view、0 單，
+         「唔知賣緊乜」係其中一個講得通嘅解釋。
+         用單卡清單，唔用免費 vs Plus 對比表：得兩個付費功能，
+         逐行對比反而引人諗「免費夠唔夠用」，幫倒忙。
+         擺喺列印卡下面：行到呢個位嘅人已經用完成個免費流程，
+         擺喺最頂未用過就見到價錢，會嚇走人。
+         買咗嘅人唔應該再見到，見 refreshPricing。 -->
+    <!-- 定價卡。文案原則：講家長慳到咩，唔係列功能名。
+         「段落默書無限用」係功能名，家長唔知關佢咩事；
+         「唔使自己讀」先係佢每晚真正嘅痛。
+         圖標用內嵌 SVG，唔用 emoji —— 每部機 emoji 樣都唔同，
+         有啲出彩色卡通，同板書風格夾唔埋。
+         買咗嘅人唔應該再見到，見 refreshPricing。 -->
+    <div class="card pricing" id="pricingCard">
+      <div class="phead">
+        <span class="pbrand">貼堂 PLUS</span>
+        <span class="pprice">HK$<b>88</b></span>
+      </div>
+
+      <div class="pfeat">
+        <span class="pfeat-i" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-2h8.4l1.1 2h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/>
+            <circle cx="12" cy="13" r="3.5"/>
+          </svg>
+        </span>
+        <div>
+          <div class="pfeat-t">唔使逐個字打</div>
+          <div class="pfeat-s">影一影學校張詞表，成份入晒去</div>
+        </div>
+      </div>
+
+      <div class="pfeat">
+        <span class="pfeat-i" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4z"/>
+            <path d="M16 9.5a4 4 0 0 1 0 5"/>
+            <path d="M18.6 7a7.5 7.5 0 0 1 0 10"/>
+          </svg>
+        </span>
+        <div>
+          <div class="pfeat-t">唔使自己讀</div>
+          <div class="pfeat-s">短文逐句慢讀，讀埋逗號句號</div>
+        </div>
+      </div>
+
+      <div class="pfoot">一次過付清，永久用 · PayMe 或 AlipayHK</div>
+      <div class="btnrow">
+        <button class="primary" id="btnPricingBuy" style="flex:1">解鎖 貼堂 Plus</button>
+      </div>
+    </div>
+
     <footer class="sitefoot">
       <p>「貼堂」由一位香港私人補習老師開發，主教<b>中學數學、物理、生物</b>。</p>
       <p>想搵補習，或者對呢個工具有意見，歡迎
@@ -729,6 +817,7 @@ I like fruit."></textarea>
       <ul class="ocrtips">
         <li>影正面，四邊入曬相，唔好歪</li>
         <li>光線夠，唔好有陰影或者反光</li>
+        <li>中英夾雜嘅詞語表都得，中文同 (v.)(adj.) 會自動剷走</li>
         <li>影完可以自己改，認錯字改返就得</li>
       </ul>
       <div class="btnrow">
@@ -740,63 +829,103 @@ I like fruit."></textarea>
     </div>
   </div>
 
+  <!-- 兩步式。之前一次過顯示「介紹 + 付款 + 輸入碼」，個框太長，
+       關閉掣被推出畫面之外，家長關唔到窗（實測）。
+       而且未決定買就見到一大堆付款細節，反而嚇走人。
+       第一步淨係講買到咩，第二步先講點俾錢。 -->
   <div class="modal hidden" id="plusModal">
     <div class="modal-box">
-      <h3>段落默書係 貼堂 Plus 功能</h3>
-      <p id="plusIntro">一次過 HK$88，永久用，唔使月月俾。</p>
+      <button class="modal-x" id="btnPlusX" aria-label="關閉">×</button>
 
-      <!-- 付款區。手機用連結（家長就係用緊部手機，冇第二部機 scan QR），
-           QR 圖淨係做電腦／後備。兩個都擺，家長自己揀慣用嗰個。 -->
-      <div class="paybox" id="payBox">
-        <div class="payprice">HK$<b>88</b> 一次過 · 永久解鎖段落默書</div>
-        <div class="payrow">
-          <!-- PayMe 有 paylink，手機撳一下直接跳入 app，摩擦力最低，所以排第一。 -->
-          <a class="paybtn payme" id="payPayme"
-             href="https://payme.hsbc/8107adf892b44487956ab90a42e663a7"
-             target="_blank" rel="noopener">用 PayMe 付款（撳一下）</a>
-          <!-- AlipayHK 個人收款碼冇分享連結（要商戶戶口先有，要 BR）。
-               所以呢個唔可以做成連結，只可以出 QR，教佢「掃一掃 → 相簿」。 -->
-          <button class="paybtn alipay" id="payAlipay">用 AlipayHK 付款</button>
+      <div id="plusStep1">
+        <div class="phead">
+          <span class="pbrand">貼堂 PLUS</span>
+          <span class="pprice">HK$<b>88</b></span>
         </div>
-
-        <div class="payqr hidden" id="alipayBox">
-          <!-- 唔用 loading="lazy"：圖一開始喺 display:none 容器入面，
-               Safari 對隱藏容器內嘅 lazy 圖處理唔穩定，展開後唔補載。
-               檔名容錯：手機上載 GitHub 會補返真副檔名，大細階又唔一致，
-               所以逐個試落去，唔靠估邊個啱。 -->
-          <img src="alipay.png.JPG" alt="AlipayHK 收款碼（HK$88）" class="payimg"
-               data-try="alipay.png.jpg|alipay.png|alipay.jpg|pay/alipay.png.JPG"
-               onerror="tryNextImg(this)">
-          <ol class="paysteps">
-            <li>長按上面個 QR，揀「儲存圖片」</li>
-            <li>開 AlipayHK → 掃一掃 → 撳右上角相簿，揀返張圖</li>
-            <li>金額已經設定好 HK$88，確認付款</li>
-          </ol>
+        <div class="pfeat">
+          <span class="pfeat-i" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-2h8.4l1.1 2h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/>
+              <circle cx="12" cy="13" r="3.5"/>
+            </svg>
+          </span>
+          <div>
+            <div class="pfeat-t">唔使逐個字打</div>
+            <div class="pfeat-s">影一影學校張詞表，成份入晒去</div>
+          </div>
         </div>
-
-        <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
-        <div class="payqr hidden" id="paymeQrBox">
-          <img src="payme.png.jpg" alt="PayMe 收款碼" class="payimg"
-               data-try="payme.png.JPG|payme.png|payme.jpg|pay/payme.png.jpg"
-               onerror="tryNextImg(this)">
-          <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
+        <div class="pfeat">
+          <span class="pfeat-i" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4z"/>
+              <path d="M16 9.5a4 4 0 0 1 0 5"/>
+              <path d="M18.6 7a7.5 7.5 0 0 1 0 10"/>
+            </svg>
+          </span>
+          <div>
+            <div class="pfeat-t">唔使自己讀</div>
+            <div class="pfeat-s">短文逐句慢讀，讀埋逗號句號</div>
+          </div>
         </div>
-
-        <ol class="paysteps payafter">
-          <li>付款之後 cap 低個付款畫面</li>
-          <li>WhatsApp 張截圖去 <a id="payWa" href="https://wa.me/85298215212?text=%E8%B2%BC%E5%A0%82%20Plus%20%E4%BB%98%E6%AC%BE%E6%88%AA%E5%9C%96" target="_blank" rel="noopener">呢度</a>，或者 email 去 tiptong.hk@gmail.com</li>
-          <li>我會喺 24 小時內回一條解鎖碼俾你</li>
-        </ol>
+        <div class="pfoot" id="plusIntro">一次過付清，永久用 · PayMe 或 AlipayHK</div>
+        <div class="btnrow">
+          <button class="primary" id="btnPlusToPay" style="flex:1">我要買 · HK$88</button>
+        </div>
+        <button class="ghost" id="btnPlusHasCode">已經有解鎖碼</button>
+        <button class="ghost" id="btnPlusClose">下次先</button>
       </div>
 
-      <p class="paycodehint">已經收到解鎖碼？喺下面輸入：</p>
-      <input type="text" id="plusInput" placeholder="TT-XXXX-XXXX" autocomplete="off"
-             autocapitalize="characters" autocorrect="off" spellcheck="false">
-      <div class="modal-msg" id="plusMsg"></div>
-      <div class="btnrow">
-        <button class="primary" id="btnPlusGo" style="flex:1">解鎖</button>
+      <div id="plusStep2" class="hidden">
+        <h3>付款</h3>
+        <div class="paybox" id="payBox">
+          <div class="payprice">HK$<b>88</b> 一次過 · 永久解鎖</div>
+          <div class="payrow">
+            <a class="paybtn payme" id="payPayme"
+               href="https://payme.hsbc/8107adf892b44487956ab90a42e663a7"
+               target="_blank" rel="noopener">用 PayMe 付款（撳一下）</a>
+            <button class="paybtn alipay" id="payAlipay">用 AlipayHK 付款</button>
+          </div>
+
+          <div class="payqr hidden" id="alipayBox">
+            <img src="alipay.png.JPG" alt="AlipayHK 收款碼（HK$88）" class="payimg"
+                 onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='alipay.png.jpg'}">
+            <ol class="paysteps">
+              <li>長按上面個 QR，揀「儲存圖片」</li>
+              <li>開 AlipayHK → 掃一掃 → 撳右上角相簿，揀返張圖</li>
+              <li>金額已經設定好 HK$88，確認付款</li>
+            </ol>
+          </div>
+
+          <button class="ghost payqr-toggle" id="btnPayQr">用緊電腦？撳呢度出 PayMe QR</button>
+          <div class="payqr hidden" id="paymeQrBox">
+            <img src="payme.png.jpg" alt="PayMe 收款碼" class="payimg"
+                 onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='payme.png.JPG'}">
+            <p class="payqrnote">用手機 PayMe 掃呢個 QR，金額入 <b>88</b>。</p>
+          </div>
+
+          <div class="payafter">
+            <div class="payafter-h">付咗款之後</div>
+            <a class="wabtn" id="payWa"
+               href="https://wa.me/85298215212?text=%E6%88%91%E5%B7%B2%E7%B6%93%E4%BB%98%E5%92%97%20HK%2488%EF%BC%8C%E9%99%84%E4%B8%8A%E6%88%AA%E5%9C%96%EF%BC%8C%E9%BA%BB%E7%85%A9%E7%99%BC%E4%B8%80%E6%A2%9D%E8%A7%A3%E9%8E%96%E7%A2%BC%E4%BF%BE%E6%88%91%E3%80%82"
+               target="_blank" rel="noopener">一撳即開 WhatsApp 傳截圖</a>
+            <p class="payafter-n">訊息我已經幫你打好，記得夾埋張付款截圖。<br>
+               <b>每日下午 3:00–晚上 10:00，10 分鐘內發解鎖碼俾你。</b><br>
+               其他時間收到嘅，會喺下午 3 點前處理。<br>
+               唔用 WhatsApp 都可以 email 去 tiptong.hk@gmail.com。</p>
+          </div>
+        </div>
+
+        <p class="paycodehint">收到解鎖碼？喺下面輸入：</p>
+        <input type="text" id="plusInput" placeholder="TT-XXXX-XXXX" autocomplete="off"
+               autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <div class="modal-msg" id="plusMsg"></div>
+        <div class="btnrow">
+          <button class="primary" id="btnPlusGo" style="flex:1">解鎖</button>
+        </div>
+        <button class="ghost" id="btnPlusBack">← 返返去</button>
       </div>
-      <button class="ghost" id="btnPlusClose">下次先</button>
     </div>
   </div>
 
@@ -1461,17 +1590,23 @@ function tryNextImg(img){
   }
   function plusExpired(){return false}   /* 永久制，永遠唔會過期 */
 
+  function plusShowStep(n){
+    $('plusStep1').classList.toggle('hidden',n!==1);
+    $('plusStep2').classList.toggle('hidden',n!==2);
+    /* 由第二步返返去第一步，個框仲卡喺下面，睇落似冇反應。 */
+    var box=document.querySelector('#plusModal .modal-box');
+    if(box)box.scrollTop=0;
+  }
   function openPlusModal(){
+    plusShowStep(1);
+    /* 底部細字唔再重複價錢（上面已經有大字 88），
+       改成講付款方式 —— 家長喺呢一步真正想知嘅係「點俾錢」。 */
     var intro=$('plusIntro');
-    if(intro){
-      intro.textContent = paraUsed()>=PARA_FREE
-        ? '你已經試咗 '+PARA_FREE+' 次段落默書。一次過 HK$'+PLUS_PRICE+'，永久用，唔使月月俾。'
-        : '段落默書一次過 HK$'+PLUS_PRICE+'，永久用，唔使月月俾。';
-    }
+    if(intro)intro.textContent='一次過付清，永久用 · PayMe 或 AlipayHK';
     $('plusMsg').textContent='';$('plusMsg').className='modal-msg';
     $('plusInput').value='';
     $('plusModal').classList.remove('hidden');
-    track('pay_view');
+    track('plus_view');
     /* 唔自動 focus 個輸入框：一開就彈鍵盤會遮住成個付款區，
        而大部分人開呢個 modal 係為咗付款，唔係為咗入碼。 */
   }
@@ -1955,6 +2090,18 @@ function tryNextImg(img){
   $('plusModal').addEventListener('click',function(e){
     if(e.target===this)closePlusModal();   // 撳背景都關得到
   });
+  $('btnPlusX').onclick=closePlusModal;
+  $('btnPlusToPay').onclick=function(){
+    plusShowStep(2);
+    track('pay_view');          /* 真正睇到付款方式先計，唔好虛報 */
+  };
+  $('btnPlusHasCode').onclick=function(){
+    plusShowStep(2);
+    track('plus_hascode');
+    $('plusInput').focus();
+  };
+  $('btnPlusBack').onclick=function(){plusShowStep(1)};
+
   $('btnPlusGo').onclick=function(){
     var v=($('plusInput').value||'').trim();
     var msg=$('plusMsg');
@@ -1962,7 +2109,7 @@ function tryNextImg(img){
     if(codeValid(v)){
       track('para_unlock',codeNormalize(v));   /* 記低邊條碼用咗，方便對數 */
       setPlusUnlocked(codeNormalize(v));
-      closePlusModal();startPara();
+      closePlusModal();refreshPricing();refreshOcrTag();startPara();
     }else{
       track('code_bad');
       msg.className='modal-msg err';
@@ -2337,6 +2484,18 @@ function tryNextImg(img){
     track('plus_click','ocr');
     openPlusModal();
   };
+  /* 買咗就唔應該再見到定價表 —— 已經俾咗錢仲日日見住個價錢，
+     只會令人覺得個 app 淨係想再賣嘢俾佢。 */
+  function refreshPricing(){
+    var c=$('pricingCard');
+    if(c)c.classList.toggle('hidden',plusUnlocked());
+  }
+  refreshPricing();
+  $('btnPricingBuy').onclick=function(){
+    track('plus_click','pricing');
+    openPlusModal();
+  };
+
   $('btnOcrPick').onclick=function(){$('ocrFile').click()};
   $('btnOcrClose').onclick=closeOcrModal;
   $('ocrFile').onchange=function(){
@@ -2471,19 +2630,93 @@ function tryNextImg(img){
     });
   }
 
-  /* 清理 OCR 出嚟嘅文字：
-     - 剷走行首編號（1. / 1) / (1)），詞表多數有
-     - 剷走純符號、單字母行（多數係雜訊）
-     - 有空格嘅成句唔拆開，段落默書要用 */
-  function cleanOcr(txt){
-    return txt.split(/\n+/).map(function(l){
+  /* ==================================================================
+     OCR 後處理：詞語表同短文要用完全唔同嘅清理方式
+     ------------------------------------------------------------------
+     實測兩種輸入：
+     (A) 中英夾雜詞語表 —— "Abuse (v.) 虐待"、"焦慮 Associate(with) (v.)"
+         Tesseract 用 eng 模式讀中文會吐垃圾字母，排版又會走位，
+         成句留低就係亂碼。要抽返個英文字出嚟。
+     (B) 純英文短文 —— 一行就係一句，要原封不動保留，
+         拆散咗就冇得做段落默書。
+     所以先偵測係邊種，唔可以一套清理走天下。
+     ================================================================== */
+  var CJK=/[\u3000-\u303F\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/;
+
+  /* 詞性標記同括號補充（(v.) (adj.) (about)）對默書冇用，
+     而且會被當成字讀出嚟，一律剷走。 */
+  function stripWordlistNoise(line){
+    return line
+      .replace(new RegExp(CJK.source,'g'),' ')   // 中文
+      .replace(/\([^)]*\)/g,' ')                 // 括號連內容
+      .replace(/[^A-Za-z'\u2019\- ]+/g,' ')      // 其餘符號、數字
+      .replace(/\s+/g,' ').trim();
+  }
+  /* 垃圾字元過濾：Tesseract 讀中文吐出嚟嘅多數係無元音嘅短串（EJ、xk、ll）。
+     要求「2 個字母以上 + 至少一個元音」就篩得走絕大部分，
+     同時保住 ox、up 呢類真英文字。 */
+  function looksLikeWord(t){
+    if(t.length<2)return false;
+    if(!/[aeiouyAEIOUY]/.test(t))return false;
+    if(/^(.)\1+$/.test(t))return false;          // aaa、lll
+    return true;
+  }
+  function extractWords(lines){
+    var raw=[];
+    lines.forEach(function(l){
+      stripWordlistNoise(l).split(/\s+/).forEach(function(t){
+        t=t.replace(/^[-'\u2019]+|[-'\u2019]+$/g,'');
+        if(looksLikeWord(t))raw.push(t);
+      });
+    });
+    /* Tesseract 讀中文吐出嚟嘅殘留（EJ、SEE、FEB、SAREE）多數係全大階，
+       而香港詞語表嘅英文字用 Title case 或者細階。所以只要成份表入面
+       有正常大細階嘅字，就當全大階嗰啲係垃圾。
+       ⚠️ 如果成張表本身就係全大階（有啲學校咁印），呢個判斷會關咗，
+          唔會誤殺 —— 見下面 hasMixed。 */
+    var hasMixed=raw.some(function(t){return t!==t.toUpperCase()});
+    var out=[],seen={};
+    raw.forEach(function(t){
+      if(hasMixed&&t===t.toUpperCase())return;
+      var k=t.toLowerCase();
+      if(seen[k])return;                          // 同一個字出現兩次唔重複
+      seen[k]=1;out.push(t);
+    });
+    return out;
+  }
+  /* 短文清理：保留成句，淨係剷走行首編號同雜訊行。 */
+  function cleanParagraph(lines){
+    return lines.map(function(l){
       return l.replace(/^\s*[\(\[]?\d{1,2}[\.\)\]]\s*/,'')
-              .replace(/[^A-Za-z0-9 '\u2019\-\.,!\?]/g,'')
+              .replace(/[^A-Za-z0-9 '\u2019\-\.,!\?;:"]/g,'')
               .replace(/\s+/g,' ').trim();
     }).filter(function(l){
       return l && l.length>=2 && /[A-Za-z]/.test(l);
     });
   }
+  /* 判斷係詞語表定短文。
+     訊號一：有中文 —— 香港嘅詞語表先會中英對照，短文唔會。
+     訊號二：有詞性標記 (v.) (n.) (adj.)。
+     訊號三：平均每行少過 4 個英文字 —— 短文一行係一句，一定長過呢個。
+     任何一個中就當詞語表：判錯做詞語表最多係拆散咗，家長改得返；
+     判錯做短文就會留住成堆亂碼，睇落似個 app 壞咗。 */
+  function looksLikeWordlist(lines){
+    var joined=lines.join('\n');
+    if(CJK.test(joined))return true;
+    if(/\((v|n|adj|adv|prep|conj|pron)\.?\)/i.test(joined))return true;
+    var counts=lines.map(function(l){
+      return (l.match(/[A-Za-z]{2,}/g)||[]).length;
+    }).filter(function(n){return n>0});
+    if(!counts.length)return true;
+    var avg=counts.reduce(function(a,b){return a+b},0)/counts.length;
+    return avg<4;
+  }
+  function cleanOcr(txt){
+    var lines=txt.split(/\n+/).map(function(l){return l.trim()}).filter(Boolean);
+    if(looksLikeWordlist(lines))return {mode:'words',lines:extractWords(lines)};
+    return {mode:'para',lines:cleanParagraph(lines)};
+  }
+
   function runOcr(file){
     ocrSay('準備緊…<div class="ocrbar"><i id="ocrBarI"></i></div>');
     loadTesseract().then(function(){
@@ -2506,7 +2739,8 @@ function tryNextImg(img){
         }
       });
     }).then(function(r){
-      var lines=cleanOcr((r&&r.data&&r.data.text)||'');
+      var res=cleanOcr((r&&r.data&&r.data.text)||'');
+      var lines=res.lines;
       if(!lines.length){
         track('ocr_empty');
         ocrSay('認唔到字。多數係影到手寫字，或者相太暗／太歪。'+
@@ -2518,11 +2752,14 @@ function tryNextImg(img){
          家長第一次影歪咗就冇機會再試，直接流失。 */
       if(!plusUnlocked())bumpOcrUsed();
       refreshOcrTag();
-      track('ocr_ok',String(lines.length));
+      track('ocr_ok',res.mode+':'+lines.length);
       closeOcrModal();
       $('wordInput').scrollIntoView({behavior:'smooth',block:'center'});
-      alert('入咗 '+lines.length+' 行。\n\n請核對一次先開始 —— OCR 可能會認錯字，'+
-            '喺個框度直接改就得。');
+      alert(res.mode==='words'
+        ? '認到 '+lines.length+' 個英文字，中文同詞性標記已經自動剷走。\n\n'+
+          '請核對一次先開始 —— OCR 可能會認錯字，喺個框度直接改就得。'
+        : '入咗 '+lines.length+' 行短文。\n\n'+
+          '請核對一次先開始 —— OCR 可能會認錯字，喺個框度直接改就得。');
     }).catch(function(e){
       track('ocr_fail');
       /* 錯誤訊息要分得出係網絡定係張相本身，唔係家長淨係識重試同一張相。 */

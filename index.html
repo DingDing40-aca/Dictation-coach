@@ -97,7 +97,6 @@
   .opt select:focus{outline:none}
   .samplerow{display:flex;align-items:stretch;gap:9px;margin-top:11px}
   .samplerow .chip{flex:1;text-align:center;padding:11px 8px;font-size:.88rem}
-  .samplelab{font-size:.8rem;color:#7A8496;margin-top:8px;line-height:1.5}
   .chip{background:#fff;border:1.5px solid #C9C6B8;color:var(--ink);
         border-radius:12px;padding:11px 16px;font-size:.92rem;font-weight:600}
   .chip:active{background:var(--soft)}
@@ -116,10 +115,6 @@
   .a2hs-row{display:flex;gap:8px;margin-top:11px}
   .a2hs-row button{flex:1;padding:10px;font-size:.88rem}
   .a2hs .ghost{flex:0 0 auto;color:#7A8496}
-  .plusline{display:block;width:100%;margin-top:12px;font-size:.82rem;line-height:1.5;
-            color:#7A8496;text-decoration:none;border:0;border-top:1px dashed #D8D5C8;
-            padding-top:11px;background:none;text-align:left;cursor:pointer;font-family:inherit}
-  .plusline:active{color:var(--board-green)}
   .plusbox-cta{background:none;border:0;padding:0;font:inherit;font-weight:700;
                color:var(--board-green);text-decoration:underline;cursor:pointer}
   /* ---- 付款區 ---- */
@@ -161,10 +156,6 @@
               background:var(--board-green);color:#fff;border-radius:5px;padding:2px 6px;
               white-space:nowrap}
   .ocrbtn-tag.free{background:#E8792B}
-  .ocrwarn{background:#FFF6E5;border:1.5px solid #E8C77A;border-radius:10px;
-           padding:11px 12px;text-align:left;margin:4px 0 11px}
-  .ocrwarn b{font-size:.92rem}
-  .ocrwarn p{font-size:.82rem;color:#5C6675;line-height:1.55;margin-top:5px}
   .ocrtips{text-align:left;font-size:.82rem;color:#5C6675;line-height:1.6;
            padding-left:19px;margin-bottom:13px}
   .pricing{border:2px solid var(--board-green)}
@@ -181,6 +172,10 @@
   .pfeat-s{font-size:.82rem;color:#7A8496;line-height:1.55}
   .pfoot{border-top:1px solid #EAE7DA;margin-top:18px;padding-top:12px;
          font-size:.75rem;color:#9AA3B0;text-align:center;margin-bottom:11px}
+  .advtoggle{display:block;width:100%;margin-top:11px;padding:10px;
+             background:none;border:1px dashed #D8D5C8;border-radius:9px;
+             font-family:inherit;font-size:.83rem;color:#7A8496;cursor:pointer}
+  .advtoggle:active{background:#F3F1E9}
   .newtag{font-size:.6rem;font-weight:700;background:#E8792B;color:#fff;
           border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;
           letter-spacing:.5px}
@@ -528,7 +523,6 @@ I like fruit."></textarea>
       <!-- 檔案輸入收埋：iOS 要 label／JS 觸發先彈到「影相 / 相簿」選單。
            accept=image/* 加 capture 會強制即影，唔俾揀相簿，所以唔加 capture。 -->
       <input type="file" id="ocrFile" accept="image/*" style="display:none">
-      <div class="samplelab">冇帶詞表都試到。撳咗會自動填example，跟住撳下面個掣就開始。</div>
 
       <div class="saverow">
         <input type="text" id="listName" placeholder="詞表名（例如：P2 Unit 5）" autocomplete="off">
@@ -539,21 +533,38 @@ I like fruit."></textarea>
         <button class="secondary" id="btnLoad">載入</button>
         <button class="ghost" id="btnDel">刪除</button>
       </div>
-      <!-- 淡色細字，同其他 hint 同一級別，唔搶「開始默書」個掣。
-           而家開嘅係站內 modal（唔係開新分頁），所以用 button 冇 iOS 彈窗問題。 -->
-      <button class="plusline" id="plusLine">
-        想默成段短文？貼堂 Plus 一次過 HK$88，永久用 →
-      </button>
+
     </div>
 
     <div class="card">
       <h2><span class="step-dot">2</span>設定</h2>
+      <!-- 漸進式呈現：六個下拉一次過攤開，家長第一眼就資訊過載。
+           預設只留最常改嘅兩個（速度、次序），其餘四個收埋。
+           ⚠️ 收埋唔等於冇 —— 啲 select 一直喺 DOM 度，
+              預設值照樣生效，收埋只係視覺上唔顯示。 -->
       <div class="opts">
         <div class="opt">
           <label>讀字速度</label>
           <select id="optRate">
             <option value="0.85" selected>慢慢讀（適合初小）</option>
             <option value="1">正常</option>
+          </select>
+        </div>
+        <div class="opt">
+          <label>次序</label>
+          <select id="optOrder">
+            <option value="seq">照詞表順序</option>
+            <option value="shuffle" selected>隨機打亂</option>
+          </select>
+        </div>
+      </div>
+      <button class="advtoggle" id="btnAdv">⚙️ 進階設定 <span id="advArrow">▾</span></button>
+      <div class="opts hidden" id="advOpts">
+        <div class="opt">
+          <label>作答方式 <span class="newtag">NEW</span></label>
+          <select id="optAnswerMode">
+            <option value="type" selected>喺手機打字（自動批改）</option>
+            <option value="paper">寫喺紙上（只讀，唔批改）</option>
           </select>
         </div>
         <div class="opt">
@@ -566,20 +577,6 @@ I like fruit."></textarea>
             <option value="400">短</option>
             <option value="900" selected>中</option>
             <option value="1600">長</option>
-          </select>
-        </div>
-        <div class="opt">
-          <label>次序</label>
-          <select id="optOrder">
-            <option value="seq">照詞表順序</option>
-            <option value="shuffle" selected>隨機打亂</option>
-          </select>
-        </div>
-        <div class="opt">
-          <label>作答方式 <span class="newtag">NEW</span></label>
-          <select id="optAnswerMode">
-            <option value="type" selected>喺手機打字（自動批改）</option>
-            <option value="paper">寫喺紙上（只讀，唔批改）</option>
           </select>
         </div>
         <div class="opt">
@@ -596,12 +593,12 @@ I like fruit."></textarea>
       <div class="btnrow">
         <button class="secondary" id="btnPara" style="flex:1">📄 段落默書<span class="plusbadge">PLUS</span></button>
       </div>
-      <div class="hint">段落默書會逐句慢慢讀，可以讀埋標點符號。貼一段短文入上面個框就用得。</div>
+      <div class="hint">逐句慢讀，讀埋標點符號。</div>
     </div>
 
     <div class="card">
-      <h2><span class="step-dot">🖨</span>列印默書紙（可存做PDF）</h2>
-      <label class="checkline"><input type="checkbox" id="optKey" checked> 連埋答案頁（畀家長對）</label>
+      <h2><span class="step-dot">🖨</span>列印／下載 PDF 默書紙</h2>
+      <label class="checkline"><input type="checkbox" id="optKey" checked> 附答案頁（方便家長核對）</label>
       <div class="btnrow">
         <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
       </div>
@@ -810,15 +807,11 @@ I like fruit."></textarea>
   <div class="modal hidden" id="ocrModal">
     <div class="modal-box">
       <h3>📷 影詞表入字</h3>
-      <div class="ocrwarn">
-        <b>⚠️ 只影得學校<u>列印出嚟</u>嘅詞語表</b>
-        <p>電腦打字、印刷體先認得到。<b>手寫字認唔到</b>，包括老師手寫、小朋友抄低嗰份。</p>
-      </div>
       <ul class="ocrtips">
-        <li>影正面，四邊入曬相，唔好歪</li>
-        <li>光線夠，唔好有陰影或者反光</li>
-        <li>中英夾雜嘅詞語表都得，中文同 (v.)(adj.) 會自動剷走</li>
-        <li>影完可以自己改，認錯字改返就得</li>
+        <li>支援學校<b>印刷體</b>詞表，暫時認唔到手寫字</li>
+        <li>平放拍攝，光線充足、四邊入曬相</li>
+        <li>中英夾雜都得，中文同 (v.)(adj.) 會自動剷走</li>
+        <li>入完可以隨時手動改錯字</li>
       </ul>
       <div class="btnrow">
         <button class="primary" id="btnOcrPick" style="flex:1">揀相 / 影相</button>
@@ -2491,6 +2484,12 @@ function tryNextImg(img){
     if(c)c.classList.toggle('hidden',plusUnlocked());
   }
   refreshPricing();
+  $('btnAdv').onclick=function(){
+    var box=$('advOpts'),open=box.classList.toggle('hidden')===false;
+    $('advArrow').textContent=open?'▴':'▾';
+    if(open)track('adv_open');
+  };
+
   $('btnPricingBuy').onclick=function(){
     track('plus_click','pricing');
     openPlusModal();
@@ -2508,8 +2507,6 @@ function tryNextImg(img){
   });
 
   (function(){
-    var a=$('plusLine');
-    if(a)a.onclick=function(){track('plus_click','setup');openPlusModal()};
     var b=$('plusBoxGo');
     if(b)b.onclick=function(){track('plus_click','result');openPlusModal()};
     /* 付款掣：分開記 PayMe / AlipayHK，睇邊個渠道真係有人撳。

@@ -24,17 +24,17 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="貼堂 TipTong">
 <meta property="og:locale" content="zh_HK">
-<meta property="og:url" content="https://dictation-coach.vercel.app/">
+<meta property="og:url" content="https://www.tiptonghk.com/">
 <meta property="og:title" content="貼堂 TipTong｜小學英文默書練習">
 <meta property="og:description" content="貼上學校詞表就自動讀音、自動批改，錯字自動排返隊尾再默，仲可以一鍵印默書紙。免費，唔使註冊。">
-<meta property="og:image" content="https://dictation-coach.vercel.app/og.png">
+<meta property="og:image" content="https://www.tiptonghk.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="貼堂 TipTong — 小學英文默書練習">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="貼堂 TipTong｜小學英文默書練習">
 <meta name="twitter:description" content="貼上學校詞表就自動讀音、自動批改，一鍵印默書紙。免費。">
-<meta name="twitter:image" content="https://dictation-coach.vercel.app/og.png">
+<meta name="twitter:image" content="https://www.tiptonghk.com/og.png">
 <style>
   :root{
     --paper:#FCFCF8;
@@ -388,6 +388,13 @@
   .modal-box input:focus{outline:2px solid var(--board-green);outline-offset:1px}
   .modal-msg{font-size:.85rem;margin-top:9px;min-height:1.1em;line-height:1.5}
   .modal-msg.err{color:var(--pen-red)}
+  .modal-msg.ok{color:var(--board-green);font-weight:700}
+  /* 主畫面嘅永久解鎖標記。冇咗佢，付完錢嘅人喺畫面上面
+     見唔到任何同未付錢嘅分別，會以為解鎖失敗。 */
+  .plusok{display:none;margin:0 0 12px;padding:9px 12px;border-radius:10px;
+          background:#E9F3EC;color:var(--board-green);
+          font-size:.85rem;font-weight:700;text-align:center}
+  body.plus-on .plusok{display:block}
   .buylink{display:block;text-align:center;margin-top:14px;padding:12px;
            background:var(--board-green);color:#fff;border-radius:11px;
            text-decoration:none;font-weight:600;font-size:.95rem;
@@ -502,6 +509,7 @@
 
   <!-- ============ SETUP ============ -->
   <section id="viewSetup">
+    <div class="plusok" id="plusOkBadge">✅ 貼堂 Plus 已解鎖 · 段落默書同影相入字已開通</div>
     <div class="card">
       <h2><span class="step-dot">1</span>貼上今個星期嘅默書詞表</h2>
       <textarea id="wordInput" placeholder="每行一個字或詞組，例如：
@@ -1259,16 +1267,20 @@ function tryNextImg(img){
     curAudio=a;
 
     var settled=false;
-    function fail(){
+    /* permanent=true 先寫入 audioMissing。
+       ⚠️ 逾時唔可以當「冇檔」：LTE 上第一次載入慢過 1.5 秒好平常，
+          寫死咗之後成個 session 都唔會再試，永遠跌返矇聲嘅 speechSynthesis。
+          只有真 404／解碼失敗（onerror）先算冇檔。 */
+    function fail(permanent){
       if(settled)return; settled=true;
-      audioMissing[slug]=true;   // 下次唔使再試
+      if(permanent===true)audioMissing[slug]=true;
       curAudio=null;
       onFail();
     }
     a.onplaying=function(){settled=true;hideNoSound()};
-    a.onerror=fail;
-    a.play().catch(fail);
-    setTimeout(function(){if(!settled)fail()},1500);   // 慢／404 都當冇檔
+    a.onerror=function(){fail(true)};
+    a.play().catch(function(){fail(true)});
+    setTimeout(function(){fail(false)},1500);   // 慢：今次跌返 TTS，下次再試音檔
   }
 
   function speak(text,slow){
@@ -1583,6 +1595,69 @@ function tryNextImg(img){
   }
   function plusExpired(){return false}   /* 永久制，永遠唔會過期 */
 
+  /* ==================================================================
+     解鎖成功嘅統一處理（2026-09 新增）
+     ------------------------------------------------------------------
+     真實事故（2026-09-12）：第一個付費家長入咗碼之後覆「冇反應」。
+     舊版碼啱嘅路徑係：
+       closePlusModal(); refreshPricing(); refreshOcrTag(); startPara();
+     而 startPara() 第一件事就係
+       if(!paraList.length){alert('請先喺上面貼一段英文短文');return}
+     佢部機個詞表係空，所以實際體驗係：個窗閂咗 → 彈一句叫佢做多啲嘢 →
+     完，全程冇一隻字講「你已經解鎖」。付咗 $88 換嚟一個要求。
+
+     三件事一次過修：
+       1. 明確講出「解鎖成功」，唔可以靠「價錢卡消失」暗示
+       2. 詞表空就自動填示範短文，確保一秒之內有嘢聽得到
+       3. 主畫面留低永久標記（body.plus-on）
+     ================================================================== */
+  function applyUnlock(code,src){
+    var norm=codeNormalize(code);
+    track('para_unlock',norm);        /* 記低邊條碼用咗，方便對數 */
+    if(src)track('unlock_src',src);
+    setPlusUnlocked(norm);
+    refreshPricing();refreshOcrTag();
+
+    var seeded=false;
+    if(!splitSentences($('wordInput').value).length){
+      $('wordInput').value=DEMO_PARA;   /* 用返現成嘅示範短文 */
+      seeded=true;
+    }
+    var msg=$('plusMsg');
+    if(msg){
+      msg.className='modal-msg ok';
+      msg.textContent='✅ 解鎖成功！貼堂 Plus 已經永久開通'+
+        (seeded?'，即刻幫你試一段示範短文。':'。');
+    }
+    /* 停一停先跳，唔係一閃而過 —— 呢句嘢係佢付咗錢之後唯一嘅收據。 */
+    setTimeout(function(){
+      closePlusModal();
+      startPara();
+    },1400);
+  }
+
+  /* 解鎖碼變 link：tiptonghk.com/#unlock=TT-XXXX-YYYY
+     WhatsApp 只需要 send 一條連結，撳一下就解鎖，
+     慳返「貼去邊」同「入完冇反應」呢兩條必然會問嘅問題。 */
+  function initUnlockHash(){
+    var m=(location.hash||'').match(/^#unlock=(.+)$/i);
+    if(!m)return;
+    var code=decodeURIComponent(m[1]);
+    try{history.replaceState(null,'',location.pathname+location.search)}
+    catch(e){location.hash=''}
+    if(!codeValid(code)){
+      track('code_bad','hash');
+      alert('呢條解鎖連結唔啱，可能係 copy 嗰陣漏咗字。'+
+            '麻煩喺 WhatsApp 再撳多次條完整連結。');
+      return;
+    }
+    if(plusUnlocked()){refreshPricing();refreshOcrTag();return}
+    openPlusModal();
+    plusShowStep(2);
+    $('plusInput').value=codeNormalize(code);
+    applyUnlock(code,'hash');
+  }
+
   function plusShowStep(n){
     $('plusStep1').classList.toggle('hidden',n!==1);
     $('plusStep2').classList.toggle('hidden',n!==2);
@@ -1672,16 +1747,18 @@ function tryNextImg(img){
     a.playbackRate=slow?0.75:1;
     curAudio=a;
     var settled=false;
-    function fail(){
+    /* 同 playAudioFile：逾時只係今次跌返 TTS，唔可以永久標記冇檔。 */
+    function fail(permanent){
       if(settled)return;settled=true;
-      paraMissing[slug]=true;curAudio=null;
+      if(permanent===true)paraMissing[slug]=true;
+      curAudio=null;
       if(run===paraRun)onFail();
     }
     a.onplaying=function(){settled=true;hideNoSound();$('paraNoSound').classList.add('hidden')};
     a.onended=function(){curAudio=null;if(run===paraRun&&onDone)onDone()};
-    a.onerror=fail;
-    a.play().catch(fail);
-    setTimeout(function(){if(!settled)fail()},1500);
+    a.onerror=function(){fail(true)};
+    a.play().catch(function(){fail(true)});
+    setTimeout(function(){fail(false)},1500);
   }
 
   /* ---------- 分組朗讀：讀 N 個字 → 停 → 再讀一次 → 落下一組 ----------
@@ -2100,9 +2177,7 @@ function tryNextImg(img){
     var msg=$('plusMsg');
     if(!v){msg.className='modal-msg err';msg.textContent='請輸入解鎖碼';return}
     if(codeValid(v)){
-      track('para_unlock',codeNormalize(v));   /* 記低邊條碼用咗，方便對數 */
-      setPlusUnlocked(codeNormalize(v));
-      closePlusModal();refreshPricing();refreshOcrTag();startPara();
+      applyUnlock(v,'input');
     }else{
       track('code_bad');
       msg.className='modal-msg err';
@@ -2482,6 +2557,9 @@ function tryNextImg(img){
   function refreshPricing(){
     var c=$('pricingCard');
     if(c)c.classList.toggle('hidden',plusUnlocked());
+    /* 付咗錢要喺主畫面睇得出分別，唔可以淨係「價錢卡消失」—— 
+       消失係減嘢，家長讀唔到「我成功咗」。 */
+    try{document.body.classList.toggle('plus-on',plusUnlocked())}catch(e){}
   }
   refreshPricing();
   $('btnAdv').onclick=function(){
@@ -2599,32 +2677,37 @@ function tryNextImg(img){
   }
   /* 相太大會令 OCR 好慢又食記憶體，先縮到長邊 1600px。
      再細會蝕辨識率，1600 喺速度同準確度之間夠用。
-     ⚠️ 唔用 URL.createObjectURL：iPhone 出 HEIC，加上喺 in-app 瀏覽器
-        （由 FB／IG／GitHub app 開出嚟嗰種 WKWebView）blob URL 會載唔到，
-        實測會直接掟 Error: img。改用 FileReader 嘅 data URL，兼容闊好多。
-     ⚠️ 就算縮圖失敗都唔可以停 —— 見下面 runOcr，會退返去用原相。 */
+
+     ⚠️ 2026-09 改寫：舊版用 FileReader → data URL → new Image()。
+        實測 iOS Safari 對 img.src 嘅 data URL 有大細上限，約 2MB base64
+        （即係約 1.5MB 原檔）就解唔到，img.onerror 一觸即發。
+        對照組：
+          336KB / 1131x836  → 過到
+          1.6MB / 約 12MP   → 死
+          3.4MB / 1170x2532 → 死
+        3MP 嗰張都死，但 12MP 換算 RGBA 都只係 48MB，iPhone 唔會唔夠 ——
+        所以樽頸唔係像素／記憶體，係 base64 string 本身。
+        createImageBitmap 直接收 File，解碼喺瀏覽器內部做，唔經 base64。
+        iOS Safari 15+ 有，覆蓋現時全部流量。
+
+     ⚠️ 舊版「縮圖失敗就退返去用原相」已經剷走：縮唔到即係張相過唔到
+        瀏覽器解碼嗰關，掟原檔落 Tesseract 一樣過唔到，
+        淨係將一個確定嘅失敗包裝成「呢張相處理唔到」。見 runOcr。 */
   function shrinkImage(file){
-    return new Promise(function(res,rej){
-      var fr=new FileReader();
-      fr.onerror=function(){rej(new Error('read'))};
-      fr.onload=function(){
-        var img=new Image();
-        img.onload=function(){
-          try{
-            var max=1600,w=img.naturalWidth,h=img.naturalHeight;
-            if(!w||!h){rej(new Error('size'));return}
-            var r=Math.min(1,max/Math.max(w,h));
-            var c=document.createElement('canvas');
-            c.width=Math.round(w*r);c.height=Math.round(h*r);
-            c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-            res(c);
-          }catch(e){rej(e)}
-        };
-        img.onerror=function(){rej(new Error('decode'))};
-        img.src=fr.result;
-      };
-      fr.readAsDataURL(file);
-    });
+    if(!window.createImageBitmap)return Promise.reject(new Error('img'));
+    return createImageBitmap(file).then(function(bmp){
+      try{
+        var max=1600,w=bmp.width,h=bmp.height;
+        if(!w||!h)throw new Error('img');
+        var r=Math.min(1,max/Math.max(w,h));
+        var c=document.createElement('canvas');
+        c.width=Math.round(w*r);c.height=Math.round(h*r);
+        c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+        return c;
+      }finally{
+        try{bmp.close()}catch(e){}
+      }
+    }).catch(function(){throw new Error('img')});
   }
 
   /* ==================================================================
@@ -2708,6 +2791,83 @@ function tryNextImg(img){
     var avg=counts.reduce(function(a,b){return a+b},0)/counts.length;
     return avg<4;
   }
+  /* ==================================================================
+     逐字信心值過濾（2026-09 新增）
+     ------------------------------------------------------------------
+     問題：課本／工作紙上面嘅相片、散景、手寫註，Tesseract 一樣會當文字
+     去讀，吐返一堆假字（實測見過 "i go A"、"74 ul"、"SH Ce"、"eX PE TT PE"）。
+     舊版只攞 r.data.text，真字同假字喺同一條 string 入面撈埋，
+     之後點用 regex 都分唔返。
+
+     實測數據（tesseract 5.3.4 + tessdata_fast，同 tesseract.js v5 同一個模型）
+     短文樣本 1170x865：
+       真字 95 個 —— 中位 conf 97、p5 91
+       假字 4 個  —— 最高 conf 53
+     兩堆之間有 38 分空隙。縮到 420px 闊都仲係：真字中位 96、假字最高 82。
+     所以 65 呢條線唔敏感，唔使逐張相調。
+
+     ⚠️ 攔唔到嘅一類：取景切走咗字邊（例如左邊被裁），
+        Tesseract 會用 96 分準確咁讀出一個斷字（'aking'、'abou'、'ond'）。
+        任何門檻都殺唔到，只可以靠 modal 嗰句「四邊入曬相」同事後核對。 */
+  var OCR_MIN_CONF=65;
+
+  /* tesseract.js 版本之間 data 結構唔一樣：有啲直接有 lines，
+     有啲要由 blocks → paragraphs → lines 行落去。兩種都接。 */
+  function ocrLines(d){
+    if(!d)return [];
+    if(d.lines&&d.lines.length)return d.lines;
+    var out=[];
+    (d.blocks||[]).forEach(function(b){
+      (b.paragraphs||[]).forEach(function(p){
+        (p.lines||[]).forEach(function(l){out.push(l)});
+      });
+    });
+    return out;
+  }
+  /* 英文得咁多個兩字母真字，係一個封閉集合。
+     實測假字好多都有元音又唔溝大細階（ul、PE、Ce、Ee），
+     淨靠形狀規則攔唔到，直接對表最乾淨。 */
+  var OCR_TWO={'am':1,'an':1,'as':1,'at':1,'ax':1,'be':1,'by':1,'do':1,
+               'go':1,'ha':1,'he':1,'hi':1,'id':1,'if':1,'in':1,'is':1,
+               'it':1,'me':1,'my':1,'no':1,'of':1,'oh':1,'ok':1,'on':1,
+               'or':1,'ox':1,'so':1,'to':1,'up':1,'us':1,'we':1};
+  /* 形狀過濾，補信心值之不足：相入面啲假字好多時分數唔算低，
+     但形狀唔似英文字 —— 單字母、冇元音、大細階溝埋一齊。 */
+  function ocrPlausible(t){
+    t=(t||'').replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,'');
+    if(!t)return false;
+    if(t.length===1)return /^[IaA]$/.test(t);   // 淨係呢三個單字母係真字
+    if(!/[aeiouyAEIOUY]/.test(t))return false;
+    if(/[a-z][A-Z]/.test(t))return false;       // eX、nN 呢類
+    if(t.length===2)return OCR_TWO[t.toLowerCase()]===1;
+    return true;
+  }
+  /* 攞唔到逐字資料就 return null，由呼叫方跌返 data.text，
+     唔可以靜靜哋交白卷 —— 否則升級 tesseract.js 之後會突然乜都認唔到。 */
+  function textByConfidence(d){
+    var lines=ocrLines(d);
+    if(!lines.length)return null;
+    var out=lines.map(function(l){
+      var ws=(l.words||[]).filter(function(w){
+        /* ⚠️ 試過對單字母另設一條高門檻（85），量度之後否決咗：
+           實測真嘅 'I' 低至 80.3，而雜訊 'y' 去到 86.6、'v' 81.7 ——
+           信心值喺單字母上面根本分唔開兩者。
+           形狀規則（只准 I／a／A）反而 100% 分得開：
+           實測全部雜訊單字母係 '|'、'y'、'v'、'1'，冇一個係 I／a／A。
+           所以單字母交返俾 ocrPlausible，統一用同一條門檻。 */
+        if(typeof w.confidence!=='number')return false;
+        if(!ocrPlausible(w.text))return false;
+        return w.confidence>=OCR_MIN_CONF;
+      });
+      return ws.map(function(w){return w.text}).join(' ').trim();
+    }).filter(function(s){
+      /* 淨低一粒孤字（'A'、'7'、'-'）嘅行係相區殘留，唔係內容。
+         留返兩個字母以上，咁 'ox'、'up' 呢類真詞表項目照過。 */
+      return s.replace(/[^A-Za-z0-9]/g,'').length>=2;
+    });
+    return out.length?out.join('\n'):null;
+  }
+
   function cleanOcr(txt){
     var lines=txt.split(/\n+/).map(function(l){return l.trim()}).filter(Boolean);
     if(looksLikeWordlist(lines))return {mode:'words',lines:extractWords(lines)};
@@ -2719,14 +2879,17 @@ function tryNextImg(img){
     loadTesseract().then(function(){
       ocrSay('認緊字…第一次要落載工具，可能等 10-30 秒。'+
              '<div class="ocrbar"><i id="ocrBarI"></i></div>');
-      /* 縮圖失敗唔應該成個功能死。Tesseract 收得 File／Blob，
-         直接掉原相俾佢，慢啲但認到字，好過彈錯誤訊息趕走人。 */
+      /* ⚠️ 唔好再退返去用原相。縮唔到即係瀏覽器解唔到呢個檔，
+         掟原檔俾 Tesseract 一樣解唔到，只會由「快啲失敗」變成
+         「等三十秒之後失敗」。直接掟 'img'，出一句講得明嘅訊息。 */
       return shrinkImage(file).catch(function(e){
-        console.warn('縮圖失敗，改用原相',e);
-        track('ocr_noshrink');
-        return file;
+        console.warn('縮圖失敗',e);
+        track('ocr_shrink_fail');
+        throw new Error('img');
       });
     }).then(function(src){
+      /* blocks:true 先攞到逐字 confidence（見 textByConfidence）。
+         唔開嘅話 r.data 只有 text，個過濾會自動跌返舊行為。 */
       return Tesseract.recognize(src,'eng',{
         logger:function(m){
           if(m.status==='recognizing text'){
@@ -2734,9 +2897,14 @@ function tryNextImg(img){
             if(b)b.style.width=Math.round(m.progress*100)+'%';
           }
         }
-      });
+      },{blocks:true,text:true});
     }).then(function(r){
-      var res=cleanOcr((r&&r.data&&r.data.text)||'');
+      var d=(r&&r.data)||{};
+      var filtered=textByConfidence(d);
+      /* 攞唔到逐字資料（舊版 tesseract.js、或者 blocks flag 冇生效）
+         就跌返 data.text，唔可以因為新過濾而變成乜都認唔到。 */
+      track('ocr_conf',filtered===null?'raw':'filtered');
+      var res=cleanOcr(filtered!==null?filtered:(d.text||''));
       var lines=res.lines;
       if(!lines.length){
         track('ocr_empty');
@@ -2758,12 +2926,16 @@ function tryNextImg(img){
         : '入咗 '+lines.length+' 行短文。\n\n'+
           '請核對一次先開始 —— OCR 可能會認錯字，喺個框度直接改就得。');
     }).catch(function(e){
-      track('ocr_fail');
-      /* 錯誤訊息要分得出係網絡定係張相本身，唔係家長淨係識重試同一張相。 */
-      var m=(e&&e.message)||'';
-      ocrSay(m==='load'
-        ? '落載工具失敗，可能係網絡唔穩，等陣再試。'
-        : '呢張相處理唔到。試下用相機直接影一張新嘅，或者換一張。',true);
+      /* ⚠️ 舊版 track('ocr_fail') 乜資料都冇送，所以三種完全唔同嘅失敗
+         （落載掛咗／解唔到張相／認字途中死）喺數據入面分唔開。
+         而家將真正嘅 error message 送埋，先知邊種佔大多數。 */
+      var m=(e&&e.message)||String(e||'');
+      track('ocr_fail',m.slice(0,40));
+      ocrSay(
+        m==='load' ? '落載工具失敗，可能係網絡唔穩，等陣再試。' :
+        m==='img'  ? '呢張相讀唔到，多數係檔案太大或者格式問題。'+
+                     '試下用<b>截圖</b>，或者影多一張。' :
+                     '認字途中出咗問題，等陣再試多次。',true);
       console.error(e);
     });
   }
@@ -2822,6 +2994,11 @@ function tryNextImg(img){
   }
   initGen();
   window.addEventListener('hashchange',initGen);
+
+  /* ⚠️ 一定要喺 initGen 之後行：#gen 係擁有者工具，唔可以被 #unlock 攔走。
+     兩者 hash 唔同，互不衝突，但次序寫死咗就唔會將來改亂。 */
+  initUnlockHash();
+  window.addEventListener('hashchange',initUnlockHash);
 })();
 </script>
 </body>

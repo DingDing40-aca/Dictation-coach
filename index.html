@@ -387,6 +387,12 @@
                    background:#fff;color:var(--ink);text-transform:uppercase}
   .modal-box input:focus{outline:2px solid var(--board-green);outline-offset:1px}
   .modal-msg{font-size:.85rem;margin-top:9px;min-height:1.1em;line-height:1.5}
+  .ptitle{font-size:1.22rem;font-weight:800;line-height:1.3;
+          color:var(--board-green);margin:2px 0 4px}
+  .psub{margin:-4px 0 14px;font-size:.82rem;color:var(--ink-soft)}
+  .listcount{margin-top:6px;font-size:.76rem;color:var(--ink-soft)}
+  .listcount b{color:var(--board-green)}
+  .listcount.full b{color:var(--pen-red)}
   .modal-msg.err{color:var(--pen-red)}
   .modal-msg.ok{color:var(--board-green);font-weight:700}
   /* 主畫面嘅永久解鎖標記。冇咗佢，付完錢嘅人喺畫面上面
@@ -541,6 +547,7 @@ I like fruit."></textarea>
         <button class="secondary" id="btnLoad">載入</button>
         <button class="ghost" id="btnDel">刪除</button>
       </div>
+      <div class="listcount" id="listCount"></div>
 
     </div>
 
@@ -636,6 +643,8 @@ I like fruit."></textarea>
         <span class="pbrand">貼堂 PLUS</span>
         <span class="pprice">HK$<b>88</b></span>
       </div>
+      <div class="ptitle">唔使次次重新打</div>
+      <div class="psub">一次付費，永久使用 · 更方便咁準備每星期默書</div>
 
       <div class="pfeat">
         <span class="pfeat-i" aria-hidden="true">
@@ -646,8 +655,8 @@ I like fruit."></textarea>
           </svg>
         </span>
         <div>
-          <div class="pfeat-t">唔使逐個字打</div>
-          <div class="pfeat-s">影一影學校張詞表，成份入晒去</div>
+          <div class="pfeat-t">影相匯入詞表</div>
+          <div class="pfeat-s">影低學校張印刷詞表，自動轉成可以默嘅內容</div>
         </div>
       </div>
 
@@ -661,8 +670,22 @@ I like fruit."></textarea>
           </svg>
         </span>
         <div>
-          <div class="pfeat-t">唔使自己讀</div>
+          <div class="pfeat-t">段落默書</div>
           <div class="pfeat-s">短文逐句慢讀，讀埋逗號句號</div>
+        </div>
+      </div>
+
+      <div class="pfeat">
+        <span class="pfeat-i" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h4L11 7h7.5A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/>
+            <path d="M12 10.5v5M9.5 13h5"/>
+          </svg>
+        </span>
+        <div>
+          <div class="pfeat-t">詞表儲低，下次直接載入</div>
+          <div class="pfeat-s">無限儲存每個 Unit 嘅詞表（免費版 3 張）</div>
         </div>
       </div>
 
@@ -843,6 +866,7 @@ I like fruit."></textarea>
           <span class="pbrand">貼堂 PLUS</span>
           <span class="pprice">HK$<b>88</b></span>
         </div>
+        <div class="ptitle">唔使次次重新打</div>
         <div class="pfeat">
           <span class="pfeat-i" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -852,8 +876,8 @@ I like fruit."></textarea>
             </svg>
           </span>
           <div>
-            <div class="pfeat-t">唔使逐個字打</div>
-            <div class="pfeat-s">影一影學校張詞表，成份入晒去</div>
+            <div class="pfeat-t">影相匯入詞表</div>
+            <div class="pfeat-s">影低學校張印刷詞表，自動轉成可以默嘅內容</div>
           </div>
         </div>
         <div class="pfeat">
@@ -866,13 +890,13 @@ I like fruit."></textarea>
             </svg>
           </span>
           <div>
-            <div class="pfeat-t">唔使自己讀</div>
+            <div class="pfeat-t">段落默書</div>
             <div class="pfeat-s">短文逐句慢讀，讀埋逗號句號</div>
           </div>
         </div>
         <div class="pfoot" id="plusIntro">一次過付清，永久用 · PayMe 或 AlipayHK</div>
         <div class="btnrow">
-          <button class="primary" id="btnPlusToPay" style="flex:1">我要買 · HK$88</button>
+          <button class="primary" id="btnPlusToPay" style="flex:1">解鎖 Plus · HK$88</button>
         </div>
         <button class="ghost" id="btnPlusHasCode">已經有解鎖碼</button>
         <button class="ghost" id="btnPlusClose">下次先</button>
@@ -937,6 +961,14 @@ I like fruit."></textarea>
       <div id="resultMsg" style="font-size:1.05rem;font-weight:600"></div>
       <div class="tricky hidden" id="trickyBox"></div>
 
+      <!-- ⚠️ 次序要緊：先俾佢做返「只再默錯字」，見到 83分 → 改善，
+           先至提 Plus。CTA 排喺行動掣上面，等於用未拎到嘅價值去換錢，
+           而且會蓋住個真正嘅成功感時刻。行動在前，招攬在後。 -->
+      <div class="btnrow" style="margin-top:18px">
+        <button class="primary" id="btnRetryWrong">只再默錯字</button>
+        <button class="secondary" id="btnRetryAll">全部再默一次</button>
+      </div>
+
       <div class="optin hidden" id="optinBox">
         <div class="optin-h">📦 開學前免費送：小一至小三常見英文詞表包</div>
         <p class="optin-p">跟返香港課程排好，貼上去即刻用，唔使自己打字。留低email，整好即刻send俾你。</p>
@@ -948,15 +980,12 @@ I like fruit."></textarea>
         <button class="ghost" id="btnOptinSkip">下次先</button>
       </div>
       <div class="plusbox hidden" id="plusBox">
-        <div class="plusbox-h">📖 默完單字，試下默成段短文</div>
+        <div class="plusbox-h">📖 下次可以更快開始</div>
         <p class="plusbox-p" id="plusBoxP"></p>
-        <button class="plusbox-cta" id="plusBoxGo">睇下貼堂 Plus</button>
+        <button class="plusbox-cta" id="plusBoxGo">了解 Plus</button>
         <button class="ghost" id="btnPlusBoxSkip">唔使喇</button>
       </div>
-      <div class="btnrow" style="margin-top:18px">
-        <button class="primary" id="btnRetryWrong">只再默錯字</button>
-        <button class="secondary" id="btnRetryAll">全部再默一次</button>
-      </div>
+
       <div class="btnrow">
         <button class="ghost" id="btnBackHome" style="flex:1">← 返回設定</button>
       </div>
@@ -1449,8 +1478,11 @@ function tryNextImg(img){
     $('plusBox').classList.toggle('hidden',
       !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
     if(!$('plusBox').classList.contains('hidden')){
-      $('plusBoxP').textContent='你已經用咗貼堂 '+runs+' 次。段落默書會逐句慢讀、標點分開讀，'+
-        '仲會分開計串字同標點錯。一次過 HK$'+PLUS_PRICE+'，永久用。';
+      /* 唔好一開口就講價錢同功能規格。家長啱啱默完，佢腦入面嘅問題係
+         「下個星期又要再嚟一次」，所以由嗰度入手先。 */
+      $('plusBoxP').textContent='你已經用咗貼堂 '+runs+' 次。下次唔使逐個字打 —— '+
+        '影一影學校張詞表就入晒去，仲可以默成段短文、無限儲低每個 Unit 嘅詞表。'+
+        'HK$'+PLUS_PRICE+'，一次付費，永久使用。';
     }
 
     show('result');
@@ -1617,6 +1649,7 @@ function tryNextImg(img){
     if(src)track('unlock_src',src);
     setPlusUnlocked(norm);
     refreshPricing();refreshOcrTag();
+    try{refreshSaved()}catch(e){}   /* 上限文案要即刻由「3／3」變返「無限」 */
 
     var seeded=false;
     if(!splitSentences($('wordInput').value).length){
@@ -1665,8 +1698,13 @@ function tryNextImg(img){
     var box=document.querySelector('#plusModal .modal-box');
     if(box)box.scrollTop=0;
   }
-  function openPlusModal(){
-    plusShowStep(1);
+  /* startStep：由邊一步開始。
+     預設 1（功能介紹），但由主頁定價卡入嚟嘅人啱啱先讀完
+     一模一樣嘅三個功能格，再彈多次同樣內容係空轉一步，
+     所以嗰個入口直接傳 2，跳去付款。
+     想返去睇功能仍然得 —— 第二步底部有「← 返返去」。 */
+  function openPlusModal(startStep){
+    plusShowStep(startStep===2?2:1);
     /* 底部細字唔再重複價錢（上面已經有大字 88），
        改成講付款方式 —— 家長喺呢一步真正想知嘅係「點俾錢」。 */
     var intro=$('plusIntro');
@@ -2326,6 +2364,8 @@ function tryNextImg(img){
 
   /* ---------- 詞表儲存（學生要求）---------- */
   var LS_LISTS='dc_lists';
+  var FREE_LIST_MAX=3;      /* 免費版最多儲 3 張，Plus 無限 */
+
   function readLists(){
     try{var o=JSON.parse(localStorage.getItem(LS_LISTS)||'{}');return (o&&typeof o==='object')?o:{}}
     catch(e){return {}}
@@ -2334,6 +2374,22 @@ function tryNextImg(img){
     try{localStorage.setItem(LS_LISTS,JSON.stringify(o));return true}
     catch(e){alert('儲存唔到。可能係無痕模式，或者儲存空間滿咗。');return false}
   }
+  function listCount(){return Object.keys(readLists()).length}
+
+  /* ⚠️ 已經超額嘅免費用戶：一張都唔可以攞走。
+     詞表係存喺人哋自己部機嘅 localStorage，你冇付任何儲存成本，
+     所以「上限」對你嚟講零得益，對佢嚟講就係突然唔見咗嘢。
+     而且家長唔會諗「係咪要升級」，佢會諗「呢個 app 整唔見我啲嘢」。
+     所以：已存在嘅全部照載入、照刪除、照覆蓋更新，
+     只係封鎖「新增第 4 張」。攞走已有嘅嘢 vs 限制新增，
+     喺用戶感受上係兩件完全唔同嘅事。 */
+  function canSaveNew(name){
+    if(plusUnlocked())return true;
+    var o=readLists();
+    if(Object.prototype.hasOwnProperty.call(o,name))return true;  /* 覆蓋舊嘅唔算新增 */
+    return Object.keys(o).length<FREE_LIST_MAX;
+  }
+
   function refreshSaved(){
     var sel=$('savedList');if(!sel)return;
     var o=readLists(),names=Object.keys(o).sort();
@@ -2346,6 +2402,24 @@ function tryNextImg(img){
     });
     sel.value=cur;
     if(sel.value!==cur)sel.value='';
+
+    var lc=$('listCount');
+    if(lc){
+      var n=names.length;
+      if(plusUnlocked()){
+        lc.className='listcount';
+        lc.innerHTML=n?('已儲存 <b>'+n+'</b> 張詞表 · Plus 無限儲存'):'Plus 可以無限儲存詞表';
+      }else if(n>FREE_LIST_MAX){
+        /* 超額用戶：講明保留，唔好嚇佢。 */
+        lc.className='listcount full';
+        lc.innerHTML='已儲存 <b>'+n+'</b> 張 · 你原有嘅全部會保留，'+
+                     '免費版之後可以更新現有詞表，新增就要 Plus';
+      }else{
+        lc.className='listcount'+(n>=FREE_LIST_MAX?' full':'');
+        lc.innerHTML='已儲存 <b>'+n+'／'+FREE_LIST_MAX+'</b> 張（免費版）'+
+                     (n>=FREE_LIST_MAX?' · Plus 無限儲存':'');
+      }
+    }
   }
 
   /* ---------- wire up ---------- */
@@ -2380,6 +2454,18 @@ function tryNextImg(img){
     var name=($('listName').value||'').trim();
     if(!name){alert('請先改個名，方便下次搵返');$('listName').focus();return}
     var o=readLists();
+    if(!canSaveNew(name)){
+      /* 撞牆嗰下係最強嘅購買時機 —— 佢啱啱有一張想儲嘅詞表喺手。
+         但要講清楚兩件事：舊嘅冇事、更新現有嗰張仍然得。 */
+      track('list_wall',String(Object.keys(o).length));
+      if(confirm('免費版最多儲 '+FREE_LIST_MAX+' 張詞表，你已經儲滿。\n\n'+
+                 '你原有嘅 '+FREE_LIST_MAX+' 張唔會有事，仍然可以載入同更新。\n'+
+                 '想儲更多，可以解鎖貼堂 Plus（無限儲存）。\n\n'+
+                 '睇吓 Plus？')){
+        openPlusModal();
+      }
+      return;
+    }
     if(o[name]&&!confirm('已經有個詞表叫「'+name+'」，覆蓋佢？'))return;
     o[name]=words;
     if(writeLists(o)){refreshSaved();$('savedList').value=name}
@@ -2570,7 +2656,8 @@ function tryNextImg(img){
 
   $('btnPricingBuy').onclick=function(){
     track('plus_click','pricing');
-    openPlusModal();
+    /* 呢個掣就喺定價卡下面，功能格啱啱喺佢上面睇完 —— 直接去付款。 */
+    openPlusModal(2);
   };
 
   $('btnOcrPick').onclick=function(){$('ocrFile').click()};

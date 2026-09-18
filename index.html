@@ -1426,7 +1426,7 @@ function tryNextImg(img){
      搵唔到對應音檔就自動 fallback 返 speechSynthesis，所以生僻字一樣讀到。 */
   var AUDIO_BASE='./audio/';
   var audioMissing={};      // 記住邊個字冇音檔，唔使每次都試多一鑊
-  var curAudio=null, audioUnlocked=false;
+  var curAudio=null, audioUnlocked=false, sharedAudio=null;
 
   function wordSlug(w){
     return (w||'').toLowerCase().trim()
@@ -1437,11 +1437,33 @@ function tryNextImg(img){
   function unlockAudio(){
     if(audioUnlocked)return;
     try{
-      var a=new Audio();
-      a.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA';
-      a.volume=0; a.play().catch(function(){});
+      /* ⚠️ 一定要留住呢個元素。iOS 只會解鎖「喺用戶手勢入面 play() 過」
+         嗰個 <audio> 本身，唔係成版。之後喺 setTimeout 入面
+         new Audio() 出嚟嘅新元素一律未解鎖，play() 會 reject
+         NotAllowedError —— 即係第一下播到，停頓之後就全部播唔到。
+         舊版解鎖完就掉咗個元素，每次都開新嘅，所以中招。
+         之前睇唔出嚟係因為 /audio/ 同 /audio/para/ 係空嘅，
+         靜態音檔本來就 404，一路都跌返 speechSynthesis。 */
+      sharedAudio=new Audio();
+      sharedAudio.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA';
+      sharedAudio.volume=0; sharedAudio.play().catch(function(){});
       audioUnlocked=true;
     }catch(e){}
+  }
+
+  /* 攞一個已經解鎖嘅播放器。重用同一個元素，淨係換 src。
+     順帶好處：一個元素播唔到兩段嘢，天然防止兩把聲疊住讀。 */
+  function getPlayer(){
+    if(sharedAudio){
+      try{
+        sharedAudio.pause();
+        sharedAudio.onplaying=null;sharedAudio.onended=null;
+        sharedAudio.onerror=null;sharedAudio.onpause=null;
+        sharedAudio.volume=1;sharedAudio.playbackRate=1;
+        return sharedAudio;
+      }catch(e){}
+    }
+    return new Audio();
   }
 
   function stopAudio(){
@@ -1454,7 +1476,8 @@ function tryNextImg(img){
     if(!slug||audioMissing[slug]){onFail();return}
 
     stopAudio();
-    var a=new Audio(AUDIO_BASE+slug+'.mp3');
+    var a=getPlayer();
+    a.src=AUDIO_BASE+slug+'.mp3';
     a.playbackRate=slow?0.7:1;
     curAudio=a;
 
@@ -1504,7 +1527,8 @@ function tryNextImg(img){
   function playGV(text,slow,gv,onFail){
     stopAudio();
     try{speechSynthesis.cancel()}catch(e){}
-    var a=new Audio(gvUrl(gvText(text),readRate(text,slow),gv.alias));
+    var a=getPlayer();
+    a.src=gvUrl(gvText(text),readRate(text,slow),gv.alias);
     curAudio=a;
     var settled=false;
     function fail(){ if(settled)return; settled=true; curAudio=null; onFail(); }
@@ -1983,8 +2007,12 @@ function tryNextImg(img){
     return new Promise(function(res){
       /* 對比刻意用原字、固定速度 0.85 —— 同基本發聲嗰邊完全一樣。
          如果呢邊包成 "The word is: X." 或者跟住家長嘅速度設定，
-         兩邊就唔係比緊同一樣嘢，個對比冇意義。 */
-      var a=new Audio(gvUrl(AB_WORD,0.85,'c'));
+         兩邊就唔係比緊同一樣嘢，個對比冇意義。
+         ⚠️ 要用 getPlayer()：呢段係喺基本發聲播完之後先播，
+            已經離開咗用戶手勢，new Audio() 喺 iOS 會被擋。 */
+      var a=getPlayer();
+      a.src=gvUrl(AB_WORD,0.85,'c');
+      curAudio=a;
       a.onended=res;a.onerror=res;
       a.play().catch(res);
       setTimeout(res,6000);
@@ -1998,6 +2026,7 @@ function tryNextImg(img){
     }
     go.onclick=function(){
       if(abBusy)return; abBusy=true; go.disabled=true;
+      unlockSpeech();unlockAudio();   // Cathy 喺 550ms 之後先播，已離開手勢
       track('voice_ab',src);
       setNow(true,'而家播緊：基本發聲');
       abBasic().then(function(){
@@ -2016,6 +2045,7 @@ function tryNextImg(img){
       document.querySelectorAll('['+attr+']'), function(b){
         b.onclick=function(){
           if(abBusy)return; abBusy=true;
+          unlockSpeech();unlockAudio();
           var isPlus=b.getAttribute(attr)==='plus';
           setNow(true,isPlus?'Cathy（Plus）':'基本發聲');
           (isPlus?abPlus():abBasic()).then(function(){
@@ -2112,7 +2142,8 @@ function tryNextImg(img){
     var slug=paraSlug(raw,withPunct);
     if(paraMissing[slug]){onFail();return}
     stopAudio();
-    var a=new Audio(PARA_AUDIO_BASE+slug+'.mp3');
+    var a=getPlayer();
+    a.src=PARA_AUDIO_BASE+slug+'.mp3';
     a.playbackRate=slow?0.75:1;
     curAudio=a;
     var settled=false;
@@ -2235,7 +2266,8 @@ function tryNextImg(img){
     function playParaGV(text,gv,run,onFail,onDone){
       stopAudio();
       try{speechSynthesis.cancel()}catch(e){}
-      var a=new Audio(gvUrl(forSpeech(text),rate,gv.alias));
+      var a=getPlayer();
+      a.src=gvUrl(forSpeech(text),rate,gv.alias);
       curAudio=a;
       var settled=false;
       function fail(){ if(settled)return; settled=true; curAudio=null;
@@ -2613,7 +2645,9 @@ function tryNextImg(img){
   $('sentList').addEventListener('click',function(e){
     var b=e.target.closest?e.target.closest('button'):null;
     if(!b)return;
-    unlockSpeech();
+    /* ⚠️ unlockAudio 一定要喺呢個手勢入面行。段落畫面之前只解鎖
+       speechSynthesis，冇解鎖 <audio> —— 即係真人發聲永遠播唔到。 */
+    unlockSpeech();unlockAudio();
     if(b.dataset.play!==undefined){setParaFocus(+b.dataset.play);speakSentence(+b.dataset.play,false)}
     if(b.dataset.slow!==undefined){setParaFocus(+b.dataset.slow);speakSentence(+b.dataset.slow,true)}
   });
@@ -2630,7 +2664,7 @@ function tryNextImg(img){
     var el=$(id); if(el) el.addEventListener('change',function(){stopParaPlayback()});
   });
   $('btnParaNext').onclick=function(){
-    unlockSpeech();
+    unlockSpeech();unlockAudio();
     if(paraIdx+1>=paraList.length){speakSentence(paraIdx,false);return}
     setParaFocus(paraIdx+1);
     speakSentence(paraIdx,false);

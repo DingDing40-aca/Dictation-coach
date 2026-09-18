@@ -2229,12 +2229,46 @@ function tryNextImg(img){
     rate=Math.max(0.4,Math.min(1.2,rate));
     var n=parseInt($('optChunk').value,10)||0;
 
+    /* 段落用 Google 真人發聲。同 playGV 分開寫係因為呢度要守住 paraRun ——
+       家長中途撳「返回設定」或者跳去第二句，run 會變，所有未完成嘅
+       callback 都唔可以再 fire，否則會兩把聲疊住讀。 */
+    function playParaGV(text,gv,run,onFail,onDone){
+      stopAudio();
+      try{speechSynthesis.cancel()}catch(e){}
+      var a=new Audio(gvUrl(forSpeech(text),rate,gv.alias));
+      curAudio=a;
+      var settled=false;
+      function fail(){ if(settled)return; settled=true; curAudio=null;
+                       if(run===paraRun)onFail() }
+      a.onplaying=function(){settled=true;hideNoSound();
+                             $('paraNoSound').classList.add('hidden')};
+      a.onended=function(){ settled=true; curAudio=null;
+                            if(run===paraRun&&onDone)onDone() };
+      a.onerror=fail;
+      a.play().catch(fail);
+      setTimeout(function(){ if(!settled)fail() },4000);   // 第一次要等 Google 合成
+    }
+
     // 呢個先係播一段文字嘅唯一入口：一律先試 audio/para/ 有冇預錄音檔，
     // 冇就 fallback TTS。單字模式（n===0）同分組模式（n>0）以前用緊
     // 兩條唔同嘅路，分組嗰條漏咗接 playParaAudio ——即係之前生成幾多
     // 音檔都播唔到，因為分組先係預設同大部分人用緊嘅模式。
     function playChunk(text,onDone){
       if(run!==paraRun)return;
+      /* Plus 真人發聲排最前。之前段落默書完全冇接呢條路，
+         家長揀咗 Cathy 去到段落默書會靜靜哋變返 Karen ——
+         而佢唔會知發生咗咩事，只會覺得把聲時好時壞。 */
+      var gv=selectedGV();
+      if(gv && gvAllowed()){
+        playParaGV(text,gv,run,function(){
+          if(run!==paraRun)return;
+          playParaAudio(text,wp,slow,run,function(){
+            if(run!==paraRun)return;
+            speakOne(text,rate,run,onDone);
+          },onDone);
+        },onDone);
+        return;
+      }
       playParaAudio(text,wp,slow,run,function(){          // onFail -> TTS
         if(run!==paraRun)return;
         speakOne(text,rate,run,onDone);
@@ -2242,11 +2276,29 @@ function tryNextImg(img){
     }
 
     if(n===0){                              // 成句一次過
+      var gv0=selectedGV();
+      if(gv0&&gvAllowed()){
+        try{ fetch(gvUrl(forSpeech(raw),rate,gv0.alias),
+                   {cache:'force-cache'}).catch(function(){}) }catch(e){}
+      }
       playChunk(raw,function(){setProg(-1,'');if(paraFinishHook)paraFinishHook()});
       return;
     }
 
     var chunks=chunkSentence(raw,n);
+    /* 預抓成句嘅所有組 —— 段落默書一句可能拆成五六組，
+       逐組先去 fetch 嘅話每組都頓一次，比單詞默書更明顯。 */
+    (function(){
+      var gvp=selectedGV();
+      if(!gvp||!gvAllowed())return;
+      chunks.slice(0,6).forEach(function(c){
+        var parts=wp?splitPunctParts(c):[{t:c}];
+        parts.forEach(function(pt){
+          try{ fetch(gvUrl(forSpeech(pt.t),rate,gvp.alias),
+                     {cache:'force-cache'}).catch(function(){}) }catch(e){}
+        });
+      });
+    })();
     var reps=parseInt($('optRepeat').value,10)||2;
     var gap=parseInt($('optChunkGap').value,10)||3000;
     var pgap=parseInt($('optPunctGap').value,10)||800;
@@ -3385,6 +3437,7 @@ function tryNextImg(img){
       '<div id="genOut">—</div>'+
       '<button id="genNew">出新碼</button>'+
       '<button id="genCopy">Copy</button>'+
+      '<button id="genReset">重設呢部機</button>'+
       '<button id="genClose">閂</button>'+
       '<div id="genLog"></div>';
     document.body.appendChild(box);
@@ -3406,6 +3459,24 @@ function tryNextImg(img){
       l.push(new Date().toISOString().slice(0,10)+'  '+c);
       try{localStorage.setItem('dc_issued',JSON.stringify(l))}catch(e){}
       log();
+    };
+    /* 測試用：將呢部機還原成「未用過」嘅狀態。
+       ⚠️ 特登放喺 #gen 裡面，唔另開一個 #reset hash ——
+          客人 pat 中一條新 hash 就會失去佢買咗嘅 $88 解鎖。
+          #gen 係你自己知嘅擁有者入口，多一層保障。
+       ⚠️ dc_issued（已發出嘅碼）刻意唔清 —— 嗰個係對數紀錄，
+          清咗就查唔返邊條碼派咗俾邊個客。 */
+    document.getElementById('genReset').onclick=function(){
+      if(!confirm('清走呢部機嘅解鎖、真人發聲試用日數、儲低嘅詞表同使用次數？\n\n'+
+                  '（已發出嘅碼紀錄會保留）'))return;
+      /* key 名逐個核對過，唔靠記憶 —— OCR 試用係 dc_ocr_runs，
+         唔係 dc_ocrtrial（估錯過一次）。 */
+      ['dc_plus','dc_gvdays','dc_runs','dc_para_runs','dc_ocr_runs',
+       'dc_lists','dc_voice','dc_optin','dc_plushint','dc_a2hs',
+       'dc_lastopen','dc_did']
+        .forEach(function(k){ try{localStorage.removeItem(k)}catch(e){} });
+      location.hash='';
+      location.reload();
     };
     document.getElementById('genCopy').onclick=function(){
       var t=document.getElementById('genOut').textContent;

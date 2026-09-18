@@ -393,6 +393,28 @@
   .listcount{margin-top:6px;font-size:.76rem;color:var(--ink-soft)}
   .listcount b{color:var(--board-green)}
   .listcount.full b{color:var(--pen-red)}
+  /* 聲音對比 */
+  .ab{margin:16px 0 14px;padding:13px;border-radius:12px;
+      background:#E9F3EC;border:1px solid #cfe2d6}
+  .ab-h{font-size:.82rem;color:var(--ink-soft);margin-bottom:9px}
+  .ab-h b{color:var(--ink)}
+  .ab-go{width:100%;padding:11px;border-radius:10px;font:inherit;font-weight:700;
+         background:#fff;color:var(--board-green);border:1.5px solid var(--board-green)}
+  .ab-now{margin-top:10px;display:flex;gap:8px;align-items:center;
+          font-size:.8rem;color:var(--ink-soft);min-height:18px}
+  .ab-now .dot{width:7px;height:7px;border-radius:50%;background:#c4d2c9;flex:none}
+  .ab-now .dot.on{background:var(--board-green);box-shadow:0 0 0 4px rgba(31,107,69,.16)}
+  .ab-again{display:none;gap:8px;margin-top:10px}
+  .ab-again.show{display:flex}
+  .ab-again button{flex:1;padding:8px;border-radius:9px;font:inherit;font-size:.8rem;
+                   background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .ab-again button b{color:var(--board-green)}
+  /* 試用完咗嘅提示：語氣先行，唔用價錢大字 */
+  .gvw-h{font-size:1.12rem;font-weight:800;margin:2px 0 8px}
+  .gvw-p{font-size:.9rem;color:var(--ink-soft);margin:0 0 4px;line-height:1.6}
+  .gvw-s{font-size:.84rem;color:var(--ink-soft);margin:10px 0 2px;line-height:1.6}
+  .vhint{margin-top:6px;font-size:.76rem;color:var(--ink-soft)}
+  .vhint b{color:var(--board-green)}
   .modal-msg.err{color:var(--pen-red)}
   .modal-msg.ok{color:var(--board-green);font-weight:700}
   /* 主畫面嘅永久解鎖標記。冇咗佢，付完錢嘅人喺畫面上面
@@ -565,12 +587,12 @@ I like fruit."></textarea>
             <option value="1">正常</option>
           </select>
         </div>
+        <!-- 英文讀音由進階搬上嚟：把聲係家長最在意、最聽得出分別嘅設定，
+             唔應該收埋喺一個要撳開嘅摺疊區入面。次序反而好少人改，換咗落去。 -->
         <div class="opt">
-          <label>次序</label>
-          <select id="optOrder">
-            <option value="seq">照詞表順序</option>
-            <option value="shuffle" selected>隨機打亂</option>
-          </select>
+          <label>英文讀音</label>
+          <select id="optVoice"><option value="">自動揀</option></select>
+          <div class="vhint" id="voiceHint"></div>
         </div>
       </div>
       <button class="advtoggle" id="btnAdv">⚙️ 進階設定 <span id="advArrow">▾</span></button>
@@ -583,8 +605,11 @@ I like fruit."></textarea>
           </select>
         </div>
         <div class="opt">
-          <label>英文讀音</label>
-          <select id="optVoice"><option value="">自動揀</option></select>
+          <label>次序</label>
+          <select id="optOrder">
+            <option value="seq">照詞表順序</option>
+            <option value="shuffle" selected>隨機打亂</option>
+          </select>
         </div>
         <div class="opt">
           <label>字與字之間停頓</label>
@@ -645,6 +670,20 @@ I like fruit."></textarea>
       </div>
       <div class="ptitle">唔使次次重新打</div>
       <div class="psub">一次付費，永久使用 · 更方便咁準備每星期默書</div>
+
+      <div class="pfeat">
+        <span class="pfeat-i" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4.5a3 3 0 0 1 3 3v4a3 3 0 0 1-6 0v-4a3 3 0 0 1 3-3z"/>
+            <path d="M6 11a6 6 0 0 0 12 0M12 17v2.5"/>
+          </svg>
+        </span>
+        <div>
+          <div class="pfeat-t">真人發聲</div>
+          <div class="pfeat-s">更準確、更清晰、更貼近老師把聲</div>
+        </div>
+      </div>
 
       <div class="pfeat">
         <span class="pfeat-i" aria-hidden="true">
@@ -857,6 +896,34 @@ I like fruit."></textarea>
        關閉掣被推出畫面之外，家長關唔到窗（實測）。
        而且未決定買就見到一大堆付款細節，反而嚇走人。
        第一步淨係講買到咩，第二步先講點俾錢。 -->
+  <!-- 試用完咗嘅提示。刻意唔要價錢大字同 PLUS 標頭 ——
+       同 paywall 一模一樣嘅話，家長會覺得只係彈多次廣告。
+       呢一版嘅角色係「同你講返發生咗咩事」，賣嘢係附帶。 -->
+  <div class="modal hidden" id="gvWall">
+    <div class="modal-box">
+      <button class="modal-x" id="gvWallX" aria-label="關閉">×</button>
+      <div class="gvw-h">Cathy 嘅試用期完咗</div>
+      <p class="gvw-p">
+        多謝你呢排用貼堂 🙏 你頭三次默書用緊嘅係 <b>Cathy</b> 真人發聲，
+        試用期已經用完，之後會轉返基本發聲。
+      </p>
+      <div class="ab">
+        <div class="ab-h">同一個字，聽吓分別 —— <b id="abWord2">comfortable</b></div>
+        <button class="ab-go" id="abGo2">▶ 聽吓分別</button>
+        <div class="ab-now"><span class="dot" id="abDot2"></span><span id="abLbl2">先播基本發聲，再播 Cathy（英式）</span></div>
+        <div class="ab-again" id="abAgain2">
+          <button data-ab2="basic">再聽 基本發聲</button>
+          <button data-ab2="plus">再聽 <b>Cathy</b></button>
+        </div>
+      </div>
+      <p class="gvw-s">解鎖貼堂 Plus 就可以一直用 Cathy 同 Deacons，一次付費，永久使用。</p>
+      <div class="btnrow">
+        <button class="primary" id="gvWallGo" style="flex:1">睇下貼堂 Plus</button>
+      </div>
+      <button class="ghost" id="gvWallSkip">用返基本發聲繼續</button>
+    </div>
+  </div>
+
   <div class="modal hidden" id="plusModal">
     <div class="modal-box">
       <button class="modal-x" id="btnPlusX" aria-label="關閉">×</button>
@@ -867,6 +934,31 @@ I like fruit."></textarea>
           <span class="pprice">HK$<b>88</b></span>
         </div>
         <div class="ptitle">唔使次次重新打</div>
+        <div class="pfeat">
+          <span class="pfeat-i" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4.5a3 3 0 0 1 3 3v4a3 3 0 0 1-6 0v-4a3 3 0 0 1 3-3z"/>
+              <path d="M6 11a6 6 0 0 0 12 0M12 17v2.5"/>
+            </svg>
+          </span>
+          <div>
+            <div class="pfeat-t">真人發聲</div>
+            <div class="pfeat-s">更準確、更清晰、更貼近老師把聲</div>
+          </div>
+        </div>
+        <!-- 一撳播兩把：強制產生對比。兩個獨立掣嘅話家長可能只撳一個，
+             聽完冇對照等於冇對比。基本發聲鎖死 en-GB，否則個分別會變成
+             「英式 vs 美式口音」而唔係「音質好壞」。 -->
+        <div class="ab" id="abBox">
+          <div class="ab-h">同一個字，聽吓分別 —— <b id="abWord">comfortable</b></div>
+          <button class="ab-go" id="abGo">▶ 聽吓分別</button>
+          <div class="ab-now"><span class="dot" id="abDot"></span><span id="abLbl">先播基本發聲，再播 Cathy（英式）</span></div>
+          <div class="ab-again" id="abAgain">
+            <button data-ab="basic">再聽 基本發聲</button>
+            <button data-ab="plus">再聽 <b>Cathy</b></button>
+          </div>
+        </div>
         <div class="pfeat">
           <span class="pfeat-i" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -1089,6 +1181,53 @@ function tryNextImg(img){
      Karen／Samantha 係 iOS 原廠預載又真係讀得清嘅，一定要留，
      唔係 iPhone 用戶就淨返一把 Daniel。
      Ava／Serena／Lee 留住係為咗 Mac、Windows、Android，嗰邊攞得到。 */
+  /* ================= Plus 真人發聲 =================
+     Cathy／Deacons 唔係瀏覽器聲，係經 /api/tts 叫 Google Cloud TTS。
+     client 只傳代號 'c'／'d'，server 用固定對照表換成完整 voice name ——
+     所以就算有人偽造請求，都燒唔到貴 40 倍嗰啲等級。
+
+     ⚠️ 免費試用以「有完成默書嘅日子」計，唔係計次數。
+        計次數嘅話一個家長今晚練一次、默一次、錯字再默一次，
+        一晚就燒晒三次 —— 佢仲未養成習慣就撞牆，價值感最低。
+        計日就至少橫跨三次獨立使用，通常兩三個星期，撞牆嗰陣佢已經用開。 */
+  var GV = { 'gtts:c':{label:'Cathy', alias:'c'}, 'gtts:d':{label:'Deacons', alias:'d'} };
+  var GV_TRIAL_DAYS = 3;
+  var LS_GVDAYS = 'dc_gvdays';
+
+  function todayKey(){
+    var d=new Date();
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+  function gvDays(){
+    try{ var a=JSON.parse(localStorage.getItem(LS_GVDAYS)||'[]'); return Array.isArray(a)?a:[] }
+    catch(e){ return [] }
+  }
+  /* 同一日之內用幾多次都唔會再扣 —— 扣嘅係「日」。 */
+  function gvAllowed(){
+    if(plusUnlocked()) return true;
+    var d=gvDays();
+    if(d.indexOf(todayKey())>=0) return true;
+    return d.length < GV_TRIAL_DAYS;
+  }
+  function gvLeft(){
+    if(plusUnlocked()) return -1;                    // -1 = 無限
+    var d=gvDays(), t=todayKey();
+    var used = d.length + (d.indexOf(t)>=0 ? 0 : 0);
+    return Math.max(0, GV_TRIAL_DAYS - used);
+  }
+  /* 只喺完成一次默書之後先記數 —— 開咗個頁面、試兩個字就走，唔應該扣。 */
+  function gvMarkToday(){
+    if(plusUnlocked()) return;
+    var d=gvDays(), t=todayKey();
+    if(d.indexOf(t)>=0) return;
+    d.push(t);
+    try{ localStorage.setItem(LS_GVDAYS, JSON.stringify(d)) }catch(e){}
+  }
+  function selectedGV(){
+    var v=$('optVoice')?$('optVoice').value:'';
+    return GV[v] || null;
+  }
+
   var VOICE_OK=['ava','daniel','serena','lee','karen','samantha'];
   function allowedVoice(v){
     if(!v||!v.lang||v.lang.indexOf('en')!==0)return false;
@@ -1125,20 +1264,44 @@ function tryNextImg(img){
       var d=voiceTier(b)-voiceTier(a);
       return d?d:(a.name||'').localeCompare(b.name||'');
     });
-    sel.innerHTML='<option value="">自動揀</option>';
+
+    sel.innerHTML='';
+    /* Plus 兩把排最上 —— 佢哋係最好嘅，亦係要賣嘅。
+       排喺一堆瀏覽器聲下面就冇人見到。 */
+    var og=document.createElement('optgroup');
+    og.label='真人發聲';
+    Object.keys(GV).forEach(function(k){
+      var o=document.createElement('option');
+      o.value=k;
+      o.textContent=GV[k].label+'（en-GB）　Plus';
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+
+    var og2=document.createElement('optgroup');
+    og2.label='基本發聲';
+    var o0=document.createElement('option');
+    o0.value='';o0.textContent='自動揀';
+    og2.appendChild(o0);
+    /* ⚠️ 同名嘅聲只留一把。iOS 會交返兩把都叫 "Daniel" 嘅聲（原廠 + 高音質），
+       舊版靠「（第 2 把）」去分。但個標籤對家長嚟講冇意義 ——
+       佢唔知「第 2 把」係咩。pool 已經按等級由高到低排，
+       所以保留第一個 = 保留質素最好嗰把，剷走標籤亦唔會蝕音質。 */
     var seen={};
     pool.forEach(function(v){
-      // iOS 會交返兩把都叫 "Daniel" 嘅聲（原廠 + 高音質），名一模一樣。
-      // 用名做 value 就分唔開，揀第二個實際上會攞返第一個。加序號做 key。
       var base=v.name||'';
-      seen[base]=(seen[base]||0)+1;
+      if(seen[base])return;
+      seen[base]=1;
       var o=document.createElement('option');
-      o.value=base+'##'+seen[base];
-      o.textContent=voiceLabel(v)+(seen[base]>1?'　（第 '+seen[base]+' 把）':'');
-      sel.appendChild(o);
+      o.value=base+'##1';
+      o.textContent=voiceLabel(v);
+      og2.appendChild(o);
     });
+    sel.appendChild(og2);
+
     sel.value=cur;
     if(sel.value!==cur) sel.value='';   // 呢部機冇咗嗰把聲，回落自動揀
+    refreshVoiceHint();
   }
   /* 由 "Daniel##2" 呢種 key 揾返實際嗰個 voice object */
   function voiceByKey(key){
@@ -1312,9 +1475,61 @@ function tryNextImg(img){
     setTimeout(function(){fail(false)},1500);   // 慢：今次跌返 TTS，下次再試音檔
   }
 
+  /* ---------- Plus 真人發聲播放 ----------
+     /api/tts 係 GET + 永久快取，所以同一段文字全世界只會叫一次 Google，
+     之後全部食 Vercel CDN。用 fetch 預先熱身就等於預載。
+     ⚠️ 速度由 client 計好再傳 &r=，唔可以喺 server 寫死 ——
+        寫死嘅話「讀字速度」同 🐢 掣對 Cathy 完全冇作用。
+        唔同速度係唔同網址，會各自快取，唔會撞。 */
+  function gvUrl(text,rate,alias){
+    return '/api/tts?t='+encodeURIComponent((text||'').trim())+
+           '&v='+alias+'&r='+rate;
+  }
+  /* Google 路徑要讀同 speechSynthesis 一模一樣嘅句子。
+     單字包成 "The word is: X." 唔係裝飾 —— 冇個引子，小朋友
+     聽到第一粒音已經走咗神，而且開頭嗰下容易被音訊起播切走。
+     兩條路唔一致嘅話，家長轉聲就會覺得個 app 變咗第二樣嘢。 */
+  function gvText(t){ return buildParts(t)[0] }
+
+  /* 預抓之後幾個字。冇呢個嘅話，每個字都要等 Google 回應（300–800ms），
+     家長會覺得成個默書一頓一頓。
+     ⚠️ 要用同 playGV 完全一樣嘅 URL，否則預抓嘅係另一個快取鍵，白做。 */
+  function gvPrefetch(words,slow){
+    var gv=selectedGV(); if(!gv||!words||!words.length)return;
+    words.slice(0,3).forEach(function(w){
+      var u=gvUrl(gvText(w),readRate(w,slow),gv.alias);
+      try{ fetch(u,{cache:'force-cache'}).catch(function(){}) }catch(e){}
+    });
+  }
+  function playGV(text,slow,gv,onFail){
+    stopAudio();
+    try{speechSynthesis.cancel()}catch(e){}
+    var a=new Audio(gvUrl(gvText(text),readRate(text,slow),gv.alias));
+    curAudio=a;
+    var settled=false;
+    function fail(){ if(settled)return; settled=true; curAudio=null; onFail(); }
+    a.onplaying=function(){settled=true;hideNoSound()};
+    a.onended=function(){curAudio=null};
+    a.onerror=fail;
+    a.play().catch(fail);
+    /* 比靜態音檔嗰個 1500ms 寬鬆：第一次要等 Google 合成。
+       太短會令第一次永遠跌返矇聲 TTS，家長就永遠聽唔到分別。 */
+    setTimeout(function(){ if(!settled)fail() },4000);
+  }
+
   function speak(text,slow){
     var t=(text||'').trim();
     if(!t)return;
+    var gv=selectedGV();
+    /* 試用期完咗就靜靜哋跌返基本發聲 —— 唔喺默書途中彈嘢，
+       嗰下打斷小朋友。撞牆提示喺開始默書之前出，見 gvWallShow。 */
+    if(gv && gvAllowed()){
+      playGV(t,slow,gv,function(){ speakFallback(t,slow) });
+      return;
+    }
+    speakFallback(t,slow);
+  }
+  function speakFallback(t,slow){
     // 單字先試預錄音檔；句子同生僻字行返 speechSynthesis
     if(t.indexOf(' ')<0){
       playAudioFile(t,slow,function(){speakTTS(t,slow)});
@@ -1323,19 +1538,22 @@ function tryNextImg(img){
     speakTTS(t,slow);
   }
 
+  /* 讀字速度嘅計法只可以有一份 —— 之前 speakTTS 自己計，
+     Google 路徑完全冇讀過 optRate，結果家長揀咗「慢慢讀」，
+     Cathy 照正常速讀。兩條路而家行同一個函數，唔會再各行各路。 */
+  function readRate(text,slow){
+    var r=parseFloat($('optRate').value)||0.85;
+    var t=(text||'').trim();
+    if(t.indexOf(' ')<0 && t.length<=4) r=r-0.15;   // 短字再慢啲
+    if(slow) r=0.6;
+    return Math.max(0.5,Math.min(1.2,r));
+  }
+
   function speakTTS(text,slow){
     if(!window.speechSynthesis){showNoSound();return}
     var t=(text||'').trim();
     if(!t)return;
-    var t=(text||'').trim();
-    if(!t)return;
-
-    var rate=parseFloat($('optRate').value)||0.85;
-    if(t.indexOf(' ')<0 && t.length<=4) rate=rate-0.15;   // 短字再慢啲
-    if(slow) rate=0.6;
-    rate=Math.max(0.5,Math.min(1.2,rate));
-
-    speakSequence(buildParts(t),rate,pickVoice(),300);
+    speakSequence(buildParts(t),readRate(t,slow),pickVoice(),300);
   }
 
   /* ---------- practice state ---------- */
@@ -1473,6 +1691,8 @@ function tryNextImg(img){
        第一次用嘅家長仲喺度衡量個工具好唔好，嗰陣叫佢俾錢太早；
        用夠 PLUS_HINT_AFTER 次即係已經信任咗個工具，先值得問。
        同一版面唔會同時出兩個 CTA —— 兩個一齊出會互相搶，兩邊轉化率一齊跌。 */
+    /* 只喺完成之後先扣試用日 —— 開咗個頁面、試兩個字就走唔應該計。 */
+    if(selectedGV() && gvAllowed()) gvMarkToday();
     var runs=bumpRuns();
     track('dictation_done',runs);
     $('plusBox').classList.toggle('hidden',
@@ -1650,6 +1870,7 @@ function tryNextImg(img){
     setPlusUnlocked(norm);
     refreshPricing();refreshOcrTag();
     try{refreshSaved()}catch(e){}   /* 上限文案要即刻由「3／3」變返「無限」 */
+    try{refreshVoiceHint()}catch(e){}   /* 「仲有 N 次」要變返「已解鎖 ✓」 */
 
     var seeded=false;
     if(!splitSentences($('wordInput').value).length){
@@ -1718,7 +1939,117 @@ function tryNextImg(img){
   }
   function closePlusModal(){$('plusModal').classList.add('hidden')}
 
-  /* ---------- 斬句 ---------- */
+  /* ---------- 聲音對比（Plus modal + 撞牆版共用） ----------
+     一撳播兩把，中間停 0.55 秒。連住播嘅話兩段會喺聽覺上溝埋，
+     停一停個分別先清晰。字揀 comfortable —— 瀏覽器 TTS 通常讀成
+     com-for-ta-ble，真人係 KUMF-tuh-bul，一聽就分得出。 */
+  var AB_WORD='comfortable';
+  var abBusy=false;
+
+  /* 基本發聲揀女聲 —— Cathy 係女，男對女嘅話家長聽到嘅第一個分別
+     係性別，會蓋過音質差異，成個對比就白做。
+     次序：Samantha → Karen → 任何女聲 → 任何英文聲。
+     ⚠️ Samantha 係 en-US，Cathy 係 en-GB，所以呢個對比同時包含口音差異。
+        咁樣係可以接受嘅 —— 香港小學跟英式英語，Cathy 嘅 en-GB 本身
+        就係賣點之一，唔係雜訊。但個標籤要講明，否則家長會以為
+        「Plus 只係英國口音」而唔係「Plus 讀得清楚啲」。 */
+  function abBasicVoice(){
+    var en=voices.filter(function(v){return /^en/i.test(v.lang||'')});
+    if(!en.length)return null;
+    var byName=function(re){
+      for(var i=0;i<en.length;i++){ if(re.test((en[i].name||'').toLowerCase()))return en[i] }
+      return null;
+    };
+    return byName(/(^|[^a-z])samantha([^a-z]|$)/)
+        || byName(/(^|[^a-z])karen([^a-z]|$)/)
+        || en.filter(function(v){return /female/i.test(v.name||'')})[0]
+        || en[0];
+  }
+  function abBasic(){
+    return new Promise(function(res){
+      try{
+        var u=new SpeechSynthesisUtterance(AB_WORD);
+        var v=abBasicVoice();
+        if(v){ u.voice=v; u.lang=v.lang||'en-US' }
+        else u.lang='en-US';
+        u.rate=0.85;
+        u.onend=res;u.onerror=res;
+        speechSynthesis.cancel();speechSynthesis.speak(u);
+        setTimeout(res,4000);          // iOS 有時唔 fire onend
+      }catch(e){res()}
+    });
+  }
+  function abPlus(){
+    return new Promise(function(res){
+      /* 對比刻意用原字、固定速度 0.85 —— 同基本發聲嗰邊完全一樣。
+         如果呢邊包成 "The word is: X." 或者跟住家長嘅速度設定，
+         兩邊就唔係比緊同一樣嘢，個對比冇意義。 */
+      var a=new Audio(gvUrl(AB_WORD,0.85,'c'));
+      a.onended=res;a.onerror=res;
+      a.play().catch(res);
+      setTimeout(res,6000);
+    });
+  }
+  function abWire(goId,dotId,lblId,againId,attr,src){
+    var go=$(goId); if(!go)return;
+    function setNow(on,txt){
+      var d=$(dotId); if(d)d.classList.toggle('on',!!on);
+      var l=$(lblId); if(l)l.textContent=txt;
+    }
+    go.onclick=function(){
+      if(abBusy)return; abBusy=true; go.disabled=true;
+      track('voice_ab',src);
+      setNow(true,'而家播緊：基本發聲');
+      abBasic().then(function(){
+        setNow(false,'…');
+        return new Promise(function(r){setTimeout(r,550)});
+      }).then(function(){
+        setNow(true,'而家播緊：Cathy（Plus · 英式）');
+        return abPlus();
+      }).then(function(){
+        setNow(false,'聽得出分別嗎？');
+        var ag=$(againId); if(ag)ag.classList.add('show');
+        go.disabled=false; abBusy=false;
+      });
+    };
+    Array.prototype.forEach.call(
+      document.querySelectorAll('['+attr+']'), function(b){
+        b.onclick=function(){
+          if(abBusy)return; abBusy=true;
+          var isPlus=b.getAttribute(attr)==='plus';
+          setNow(true,isPlus?'Cathy（Plus）':'基本發聲');
+          (isPlus?abPlus():abBasic()).then(function(){
+            setNow(false,'聽得出分別嗎？'); abBusy=false;
+          });
+        };
+      });
+  }
+  abWire('abGo','abDot','abLbl','abAgain','data-ab','paywall');
+  abWire('abGo2','abDot2','abLbl2','abAgain2','data-ab2','wall');
+
+  /* 揀咗 Plus 聲就喺個掣下面講返仲有幾多次，唔好等佢撞牆先知。 */
+  function refreshVoiceHint(){
+    var h=$('voiceHint'); if(!h)return;
+    var gv=selectedGV();
+    if(!gv){ h.textContent=''; return }
+    if(plusUnlocked()){ h.innerHTML='真人發聲已解鎖 ✓'; return }
+    var left=gvLeft();
+    h.innerHTML = left>0
+      ? ('真人發聲免費試用，仲有 <b>'+left+'</b> 次默書')
+      : '真人發聲試用已完 · 而家會用基本發聲';
+  }
+
+  function gvWallShow(){
+    track('voice_wall',String(gvDays().length));
+    $('gvWall').classList.remove('hidden');
+  }
+  $('gvWallX').onclick=function(){$('gvWall').classList.add('hidden')};
+  $('gvWallSkip').onclick=function(){$('gvWall').classList.add('hidden')};
+  $('gvWallGo').onclick=function(){
+    $('gvWall').classList.add('hidden');
+    track('plus_click','voicewall');
+    openPlusModal();
+  };
   function splitSentences(t){
     var s=(t||'').replace(/\s+/g,' ').trim();
     if(!s)return [];
@@ -2586,6 +2917,10 @@ function tryNextImg(img){
     unlockSpeech(); unlockAudio();   // 一定要喺呢個手勢入面行，唔可以延後
     var words=getWords();
     if(!words.length){alert('請先貼上詞表（每行一個字）');return}
+    /* 撞牆提示喺呢度出，唔喺默書途中出 —— 默到一半彈嘢會打斷小朋友，
+       而且嗰陣家長心思喺批改度，唔會睇得入耳。 */
+    if(selectedGV() && !gvAllowed()){ gvWallShow(); return }
+    gvPrefetch(words,false);         // 預抓頭幾個字，唔好撳完先去 fetch
     startPractice(words);
   };
   $('btnPrint').onclick=function(){if(buildPrint()){track('print');window.print()}};
@@ -2603,7 +2938,7 @@ function tryNextImg(img){
   $('btnBackHome').onclick=function(){show('setup')};
   $('btnRetryAll').onclick=function(){startPractice(getWords())};
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
-  $('optVoice').addEventListener('change',function(){savedVoice(this.value)});
+  $('optVoice').addEventListener('change',function(){savedVoice(this.value);refreshVoiceHint()});
 
   function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
   $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
@@ -2656,8 +2991,12 @@ function tryNextImg(img){
 
   $('btnPricingBuy').onclick=function(){
     track('plus_click','pricing');
-    /* 呢個掣就喺定價卡下面，功能格啱啱喺佢上面睇完 —— 直接去付款。 */
-    openPlusModal(2);
+    /* ⚠️ 曾經改咗做 openPlusModal(2) 直接跳去付款，理由係
+       「功能格同定價卡一模一樣，彈多次係空轉」。而家收返 ——
+       第一步已經唔止係功能格，仲有聲音 A/B 對比，
+       而嗰個係定價卡冇、亦係整個 paywall 最有說服力嘅嘢。
+       跳過佢等於由定價卡入嚟嘅家長永遠聽唔到分別。 */
+    openPlusModal(1);
   };
 
   $('btnOcrPick').onclick=function(){$('ocrFile').click()};

@@ -294,6 +294,17 @@
   .optin-msg.ok{color:var(--board-green);font-weight:700}
   .optin-msg.err{color:var(--pen-red)}
   .optin .ghost{display:block;margin:6px auto 0;font-size:.82rem;color:#7A8496}
+  /* WhatsApp 入群掣 —— 刻意做成 a 連結，唔做 button：
+     36% 流量係 in-app 瀏覽器（FB／IG），嗰啲環境成日封 window.open()，
+     但封唔到一條普通連結。所以個掣本身就係條連結。
+     顏色用 WhatsApp 官方綠，家長撳之前就知道會跳去邊。 */
+  .optin-row.single{display:block}
+  .optin-row.single .wa-btn{
+    display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;
+    font-family:inherit;font-size:1rem;font-weight:700;padding:13px 20px;border-radius:12px;
+    background:#25D366;color:#fff;box-shadow:0 4px 0 #1B9E4B;
+    transition:transform .08s ease, box-shadow .08s ease}
+  .optin-row.single .wa-btn:active{transform:scale(.97);box-shadow:0 1px 0 #1B9E4B}
   .sitefoot{margin:26px 4px 0;font-size:.82rem;line-height:1.75;color:#7A8496}
   .sitefoot p{margin-bottom:3px}
   .sitefoot b{color:var(--ink)}
@@ -735,7 +746,7 @@ I like fruit."></textarea>
     </div>
 
     <footer class="sitefoot">
-      <p>「貼堂」由一位香港私人補習老師開發，主教<b>中學數學、物理、生物</b>。</p>
+      <p>「貼堂」由一位<b>香港中文大學教育學院學生</b>開發，私人補習三年，教過小一至中五。</p>
       <p>想搵補習，或者對呢個工具有意見，歡迎
          <a href="https://wa.me/85298215212" target="_blank" rel="noopener">WhatsApp</a> 或
          <a href="mailto:dormamon201537@gmail.com">電郵</a>。</p>
@@ -869,6 +880,20 @@ I like fruit."></textarea>
       <div id="paraMarks"></div>
       <div class="btnrow">
         <button class="primary" id="btnParaRetry">再默一次</button>
+      </div>
+
+      <!-- 同單詞結果頁嗰張一模一樣。段落默書用家（para_done 23 次）同
+           紙筆模式用家（paper_done 20 次）本身喺 dictation_done 入面already
+           完全隱形，如果連邀請都收唔到，就係全 app 最投入嗰批人接觸唔到。 -->
+      <div class="optin hidden" id="optinBox2">
+        <div class="optin-h">📦 免費英文詞表包</div>
+        <p class="optin-p">小一至小六常見英文詞，跟返香港課程排好，貼上去即刻用，唔使自己打字。
+           加入 WhatsApp 群組，每兩星期派一批新詞表，新功能亦都會喺度先公佈。</p>
+        <div class="optin-row single">
+          <a class="wa-btn" id="btnOptin2" href="#" target="_blank" rel="noopener">💬 加入 WhatsApp 群組</a>
+        </div>
+        <div class="optin-msg" id="optinMsg2"></div>
+        <button class="ghost" id="btnOptinSkip2">下次先</button>
       </div>
     </div>
   </section>
@@ -1063,11 +1088,11 @@ I like fruit."></textarea>
       </div>
 
       <div class="optin hidden" id="optinBox">
-        <div class="optin-h">📦 開學前免費送：小一至小三常見英文詞表包</div>
-        <p class="optin-p">跟返香港課程排好，貼上去即刻用，唔使自己打字。留低email，整好即刻send俾你。</p>
-        <div class="optin-row">
-          <input type="email" id="optinEmail" placeholder="your@email.com" autocomplete="email" inputmode="email">
-          <button class="primary" id="btnOptin">免費領取</button>
+        <div class="optin-h">📦 免費英文詞表包</div>
+        <p class="optin-p">小一至小六常見英文詞，跟返香港課程排好，貼上去即刻用，唔使自己打字。
+           加入 WhatsApp 群組，每兩星期派一批新詞表，新功能亦都會喺度先公佈。</p>
+        <div class="optin-row single">
+          <a class="wa-btn" id="btnOptin" href="#" target="_blank" rel="noopener">💬 加入 WhatsApp 群組</a>
         </div>
         <div class="optin-msg" id="optinMsg"></div>
         <button class="ghost" id="btnOptinSkip">下次先</button>
@@ -1101,32 +1126,19 @@ function tryNextImg(img){
 }
 (function(){
   /* ==================================================================
-     收 email 設定 —— 開戶之後填呢兩行就會生效，唔填就自動收埋個表單。
-     揀一：Formspree（最易，免費每月50封）
-       1. formspree.io 註冊 → New Form → copy 個 endpoint
-       2. EMAIL_ENDPOINT = 'https://formspree.io/f/xxxxxxx'
-     揀二：Google Form（免費無上限，適合量大）
-       1. 開一個 Google Form，得一條 email 短答題
-       2. 撳「傳送 → <>」攞 form ID，砌成
-          'https://docs.google.com/forms/d/e/xxxx/formResponse'
-       3. 喺 Form 撳右鍵「檢查」搵嗰條 entry.123456789，填落 EMAIL_FIELD
-     ================================================================== */
-  var EMAIL_ENDPOINT='https://docs.google.com/forms/d/e/1FAIpQLSd3mjJ0ls3M79-Iq0VdE_DXyhCP2rJorTLHwxihrujRf16l5Q/formResponse';
-  var EMAIL_FIELD='entry.1400846539';
+     ★★★ 要改嘅就係下面呢一行 ★★★
 
-  function submitEmail(addr){
-    if(!EMAIL_ENDPOINT) return Promise.resolve(false);
-    if(EMAIL_ENDPOINT.indexOf('docs.google.com')>=0){
-      var fd=new FormData(); fd.append(EMAIL_FIELD,addr);
-      // Google Form 唔俾讀回應，no-cors 送出即當成功
-      return fetch(EMAIL_ENDPOINT,{method:'POST',mode:'no-cors',body:fd}).then(function(){return true});
-    }
-    return fetch(EMAIL_ENDPOINT,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({email:addr,source:'tiptong-app'})
-    }).then(function(r){return r.ok});
-  }
+     WhatsApp 群組／社群邀請連結。開好之後，喺 WhatsApp：
+       社群（Community）→ 撳個社群名 → 邀請成員 → 複製連結
+       （普通群組：群組資料 → 邀請成員 → 透過連結邀請 → 複製連結）
+     個樣一定係咁：https://chat.whatsapp.com/XXXXXXXXXXXXXXXXXXXX
+
+     ⚠️ 留空（''）嘅話，成張邀請卡會自動收埋，唔會出現一個撳唔到嘅掣。
+        所以未填之前 deploy 都唔會爛，只係暫時冇咗個邀請。
+     ⚠️ 2026-09 換走咗 email 收集。舊嗰 185 個 email 仲喺原本個
+        Google Form 度，冇刪，要嘅話隨時攞得返。
+     ================================================================== */
+  var WA_COMMUNITY='https://chat.whatsapp.com/G1vgVEeTj7pDVlHHuvL8m8';
 
   /* ==================================================================
      事件記錄（用返上面同一套 Google Form 通道，零成本、唔使第二個平台）
@@ -1686,9 +1698,23 @@ function tryNextImg(img){
                  '<button type="button" data-say="'+i+'">🔊</button></div>';
         }).join('');
       $('btnRetryWrong').style.display='none';
-      $('optinBox').classList.add('hidden');
+      /* 紙筆模式一樣要出邀請卡。舊版喺度硬收埋咗佢，
+         但紙筆用家啱啱都係做完一次默書，同樣係有成功感嗰一刻。 */
+      showOptinCard('');
       $('plusBox').classList.add('hidden');
-      bumpRuns();
+      /* ⚠️ 2026-09-22 修：紙筆模式以前只送 paper_done，唔送 dictation_done，
+         所以紙筆完成完全唔入主漏斗。但「作答方式」（打字／紙筆）同
+         「默書引擎」係正交嘅 —— 兩者行同一個 dc_runs 計數器，
+         完成一次就係完成一次，冇理由只認打字嗰種。
+
+         順帶修好咗數值斷層：以前 bumpRuns() 照加但唔送事件，
+         所以一個先用紙筆再用打字嘅家長，第一條 dictation_done
+         個 value 會直接由 3 開始，睇落似漏咗 1 同 2。
+
+         段落默書故意唔喺度送 —— 佢係另一個引擎、另一個計數器
+         （dc_para_runs），有自己嘅 para_done，撈埋會搞亂個 value 意思。 */
+      var pruns=bumpRuns();
+      track('dictation_done',pruns);
       show('result');
       return;
     }
@@ -1706,11 +1732,12 @@ function tryNextImg(img){
     }else{box.classList.add('hidden')}
     $('btnRetryWrong').style.display=wrongs.length?'':'none';
 
-    // 只喺「啱啱默完、有成功感」呢一刻問一次；答咗或者skip咗就唔再煩
-    var done=false;
-    try{done=localStorage.getItem('dc_optin')==='1'}catch(e){}
-    var showOptin=!!(EMAIL_ENDPOINT && !done);
-    $('optinBox').classList.toggle('hidden',!showOptin);
+    /* 只喺「啱啱默完、有成功感」呢一刻問。入咗群就永遠唔再問。
+       ⚠️ 用新 key dc_wa，唔沿用 dc_optin —— 舊嗰 37 個留過 email 嘅人
+          係全批用戶入面最熱嗰批，唔應該因為佢哋留過 email 就見唔到個群組邀請。
+       撳「下次先」最多問 3 次（跟返 plusBox／a2hs 同一套 SKIP_MAX），
+       唔係舊版嗰種「skip 一次就永遠消失」—— 舊版嘅結果係 178 個人得 37 個留低。 */
+    var showOptin=showOptinCard('');
 
     /* Plus 提示：只俾「真係用開」嘅人見。
        第一次用嘅家長仲喺度衡量個工具好唔好，嗰陣叫佢俾錢太早；
@@ -2508,6 +2535,7 @@ function tryNextImg(img){
       });
       $('paraScoreLabel').textContent='對答案';
       document.querySelector('#viewParaResult .legend').classList.add('hidden');
+      showOptinCard('2');
       show('pararesult');
       return;
     }
@@ -2563,7 +2591,12 @@ function tryNextImg(img){
     });
 
     track('para_done',sc.score);
-    if(!plusUnlocked()&&paraLeft()===0){
+    var plusPrompt=(!plusUnlocked()&&paraLeft()===0);
+    /* 試用用完嗰一刻係全個 app 最貴嘅一格。守住「同一版面唔會同時出兩個
+       CTA」—— 嗰陣唔好用免費詞表包搶咗 $88 嘅注意力。 */
+    if(plusPrompt) $('optinBox2').classList.add('hidden');
+    else showOptinCard('2');
+    if(plusPrompt){
       box.insertAdjacentHTML('afterbegin',
         '<div class="paratrial" style="margin-bottom:14px">'+
         '🎁 你已經試晒 '+PARA_FREE+' 次段落默書。想繼續用，'+
@@ -3027,8 +3060,45 @@ function tryNextImg(img){
   $('btnRetryWrong').onclick=function(){startPractice(Object.keys(wrongSet))};
   $('optVoice').addEventListener('change',function(){savedVoice(this.value);refreshVoiceHint()});
 
-  function markOptinDone(){try{localStorage.setItem('dc_optin','1')}catch(e){}}
-  $('btnOptinSkip').onclick=function(){markOptinDone();$('optinBox').classList.add('hidden')};
+  /* 入咗群 = 永久唔再問（dc_wa）。撳「下次先」= 記一次（dc_waskip），
+     夠 SKIP_MAX 次先永久收皮。兩個 key 分開，唔好撈埋。 */
+  function markOptinDone(){try{localStorage.setItem('dc_wa','1')}catch(e){}}
+
+  function waShouldShow(){
+    var joined=false;
+    try{joined=localStorage.getItem('dc_wa')==='1'}catch(e){}
+    return !!(WA_COMMUNITY && !joined && skipCount('dc_waskip')<SKIP_MAX);
+  }
+  /* sfx '' = 單詞結果頁，'2' = 段落結果頁。
+     派埋 wa_view 出去先計到轉化率 —— 舊版淨係記 optin_ok，
+     所以「37 個」永遠冇分母，唔知係文案唔掂定係根本冇人見到。 */
+  function showOptinCard(sfx){
+    var s=waShouldShow();
+    $('optinBox'+sfx).classList.toggle('hidden',!s);
+    if(s) track('wa_view');
+    return s;
+  }
+  /* 接線寫成一個 function 行兩次，唔好 copy 兩份 ——
+     copy 兩份嘅話，將來改一邊實會漏另一邊。 */
+  function wireOptin(sfx){
+    var a=$('btnOptin'+sfx), skip=$('btnOptinSkip'+sfx);
+    if(WA_COMMUNITY) a.href=WA_COMMUNITY;
+    a.onclick=function(){
+      if(!WA_COMMUNITY){return false}
+      track('wa_join');
+      markOptinDone();
+      var msg=$('optinMsg'+sfx);
+      msg.className='optin-msg ok';
+      msg.textContent='開緊 WhatsApp… 撳「加入」就得 ✓';
+      skip.style.display='none';
+    };
+    skip.onclick=function(){
+      track('wa_skip',bumpSkip('dc_waskip'));
+      $('optinBox'+sfx).classList.add('hidden');
+    };
+  }
+  wireOptin('');
+  wireOptin('2');
   /* 免費試用一次。理由同段落默書一樣：實測 16 個人撞段落默書嘅牆、
      14 個去咗睇價、0 個買 —— 冇試過就唔肯俾錢。OCR 更加要試，
      因為家長根本唔知認得準唔準，冇試過嘅話 $88 係盲買。
@@ -3123,29 +3193,14 @@ function tryNextImg(img){
     track('plus_skip',bumpSkip('dc_plushint'));
     $('plusBox').classList.add('hidden');
   };
-  $('btnOptin').onclick=function(){
-    var el=$('optinEmail'),msg=$('optinMsg'),btn=this;
-    var v=(el.value||'').trim();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
-      msg.className='optin-msg err';msg.textContent='個email好似打錯咗，check下？';el.focus();return;
-    }
-    btn.disabled=true;msg.className='optin-msg';msg.textContent='send緊…';
-    submitEmail(v).then(function(ok){
-      if(ok){
-        track('optin_ok');
-        markOptinDone();
-        msg.className='optin-msg ok';msg.textContent='收到！整好即刻send俾你 ✓';
-        el.disabled=true;btn.style.display='none';$('btnOptinSkip').style.display='none';
-      }else{
-        btn.disabled=false;
-        msg.className='optin-msg err';msg.textContent='send唔到，遲啲再試下。';
-      }
-    }).catch(function(){
-      btn.disabled=false;
-      msg.className='optin-msg err';msg.textContent='send唔到，遲啲再試下。';
-    });
-  };
-  $('optinEmail').addEventListener('keydown',function(e){if(e.key==='Enter')$('btnOptin').click()});
+  /* 接線見上面 wireOptin()。兩個要點記住：
+       1. 個掣係 <a href>，唔係 button，而且唔 preventDefault ——
+          由瀏覽器自己行條連結，in-app 瀏覽器（FB／IG）封
+          window.open() 都封唔到佢。
+       2. href 喺初始化嗰陣填，所以 WA_COMMUNITY 只需要改一個地方。
+     ⚠️ wa_join 只代表「撳咗個掣」，唔代表「真係入咗群」。
+        WhatsApp 唔會話俾個網頁知，所以呢個數一定會高過實際人數。
+        真實入群人數要喺 WhatsApp 入面自己數。 */
 
   /* ==================================================================
      發碼工具 —— 開 https://tiptong.hk/#gen 就會出，家長唔會撞到。
@@ -3507,7 +3562,7 @@ function tryNextImg(img){
       /* key 名逐個核對過，唔靠記憶 —— OCR 試用係 dc_ocr_runs，
          唔係 dc_ocrtrial（估錯過一次）。 */
       ['dc_plus','dc_gvdays','dc_runs','dc_para_runs','dc_ocr_runs',
-       'dc_lists','dc_voice','dc_optin','dc_plushint','dc_a2hs',
+       'dc_lists','dc_voice','dc_optin','dc_wa','dc_waskip','dc_plushint','dc_a2hs',
        'dc_lastopen','dc_did']
         .forEach(function(k){ try{localStorage.removeItem(k)}catch(e){} });
       location.hash='';

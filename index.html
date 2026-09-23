@@ -2193,12 +2193,21 @@ function tryNextImg(img){
      瀏覽器 TTS 讀成句係讀得快又冧埋一舊，初小跟唔到。
      解法唔係換引擎（換唔到，見下面 showVoiceTip），係改變節奏：
      細組、慢速、重複、中間留夠時間寫。 */
+  /* ⚠️ 唔可以喺虛詞度斷組。組尾會被 forSpeech() 補句號，
+     "chocolate once a." 會被 TTS 當句尾重讀，讀成字母 "A"（/eɪ/），
+     唔係 "a year" 入面嗰粒輕讀嘅 /ə/。the→"thee"、to→"too" 同一個問題。
+     家長報告（2026-09-23）：段落 3 字一組讀 "once a year" 冇咗個 a 音。
+     解法：組尾撞到虛詞就唔斷，組多一個字，等虛詞同後面個字黐埋讀
+     （"chocolate once a year."）。唔好改做「推落下一組」——
+     咁會連鎖整出 "to." 呢類單字組，一樣讀錯。 */
+  var WEAK_END=/^(a|an|the|to|of|for|and|or|at|from|than|as)$/i;
   function chunkSentence(s,n){
     var toks=tokenize(s),out=[],cur=[];
     toks.forEach(function(w){
       cur.push(w);
       // 撞到標點就即刻斷組——「有標點符號分隔就當一句」
-      if(cur.length>=n||/[,;:.!?。，；：！？]$/.test(w)){out.push(cur.join(' '));cur=[]}
+      var hitPunct=/[,;:.!?。，；：！？]$/.test(w);
+      if(hitPunct||(cur.length>=n&&!WEAK_END.test(w))){out.push(cur.join(' '));cur=[]}
     });
     if(cur.length)out.push(cur.join(' '));
     return out;

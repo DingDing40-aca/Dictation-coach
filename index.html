@@ -44,6 +44,14 @@
     --pen-red:#D8453C;
     --board-green:#2E6E52;
     --soft:#EEF1EA;
+    /* 次要字（說明、提示）同第三級字（skip 掣、細註）。
+       兩個喺 --paper 同 body 底色上面都過 WCAG AA 4.5:1：
+       --ink-soft 約 5.6:1，--ink-muted 約 4.9:1。
+       舊嘅 var(--ink-muted) 只有約 3.7:1，#9AA3B0 只有約 2.5:1 ——
+       定價卡底「一次過付清 · PayMe」呢句信任資料之前係全卡最難睇嘅字。 */
+    --ink-soft:#5C6675;
+    --ink-muted:#666F80;
+    --line:#D8D5C8;
     --shadow:0 10px 30px rgba(32,48,79,.10);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -57,12 +65,20 @@
     min-height:100vh;
   }
   .wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
-  .iabwarn{background:#FFF4D6;border:1.5px solid #E0B94A;border-radius:12px;
-           padding:12px 14px;margin:12px 0 4px;font-size:.88rem;line-height:1.6;color:#5A4409}
+  /* 縮做一行：以前係第一屏最大嘅嘢，陌生家長未知呢個係咩，
+     第一句讀到就係「好可能冇聲」。真係冇聲嗰陣 #noSound 會再詳細講。 */
+  .iabwarn{background:#FFF4D6;border:1px solid #E8CC7A;border-radius:9px;
+           padding:7px 11px;margin:0 0 14px;font-size:.8rem;line-height:1.5;color:#5A4409}
   .nosound{background:#FFF4D6;border:1.5px solid #E0B94A;border-radius:10px;
            padding:11px 13px;margin-top:12px;font-size:.85rem;line-height:1.6;
            color:#5A4409;text-align:left}
-  header.app{display:flex;align-items:center;gap:11px;margin:10px 0 20px}
+  header.app{display:flex;align-items:center;gap:11px;margin:10px 0 12px}
+  /* 第一屏價值說明。之前 logo 之後即刻係空白輸入框，
+     由 FB 過嚟嘅家長唔知呢個係咩、使唔使錢。 */
+  .lede{font-size:1.08rem;font-weight:700;line-height:1.5;margin:0 2px 4px;
+        text-wrap:balance}
+  .lede b{color:var(--board-green)}
+  .lede-s{font-size:.84rem;color:var(--ink-soft);margin:0 2px 16px}
   header.app .logo{width:44px;height:44px;flex:none}
   header.app .brand{display:flex;flex-direction:column;line-height:1.15}
   header.app h1{font-size:1.3rem;letter-spacing:.06em}
@@ -89,10 +105,10 @@
     padding:12px;background:#fff;color:var(--ink);
   }
   textarea:focus{outline:2px solid var(--board-green);outline-offset:1px}
-  .hint{font-size:.82rem;color:#7A8496;margin-top:8px;line-height:1.5}
+  .hint{font-size:.82rem;color:var(--ink-soft);margin-top:8px;line-height:1.5}
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
   .opt{background:#fff;border:1.5px solid #D8D5C8;border-radius:10px;padding:10px 12px}
-  .opt label{display:block;font-size:.78rem;color:#7A8496;margin-bottom:6px}
+  .opt label{display:block;font-size:.78rem;color:var(--ink-muted);margin-bottom:6px}
   .opt select{width:100%;border:none;background:transparent;font-size:.95rem;color:var(--ink);font-family:inherit}
   .opt select:focus{outline:none}
   .samplerow{display:flex;align-items:stretch;gap:9px;margin-top:11px}
@@ -114,7 +130,7 @@
   .a2hs-p b{color:var(--board-green)}
   .a2hs-row{display:flex;gap:8px;margin-top:11px}
   .a2hs-row button{flex:1;padding:10px;font-size:.88rem}
-  .a2hs .ghost{flex:0 0 auto;color:#7A8496}
+  .a2hs .ghost{flex:0 0 auto;color:var(--ink-muted)}
   .plusbox-cta{background:none;border:0;padding:0;font:inherit;font-weight:700;
                color:var(--board-green);text-decoration:underline;cursor:pointer}
   /* ---- 付款區 ---- */
@@ -128,13 +144,12 @@
   .paybtn.payme{background:#D8232A}
   .paybtn.alipay{background:#1677FF}
   .paybtn:active{opacity:.85}
-  .payqr-toggle{width:100%;margin-top:9px;font-size:.8rem;color:#7A8496}
+  .payqr-toggle{width:100%;margin-top:9px;font-size:.8rem;color:var(--ink-muted)}
   .payqr{margin-top:11px;text-align:center;background:#fff;border-radius:10px;
          padding:12px;border:1px solid #E4E0D2}
   .payqr img{width:100%;max-width:210px;border-radius:8px}
   .payqr .paysteps{text-align:left;margin-top:10px}
   .payqrnote{font-size:.8rem;color:#5C6675;margin-top:8px}
-  .payafter{border-top:1px dashed #D8D5C8;padding-top:11px;margin-top:13px}
   button.paybtn{width:100%;border:0;font-family:inherit;cursor:pointer}
   .paysteps{margin:12px 0 0;padding-left:19px;font-size:.83rem;
             color:#5C6675;line-height:1.65}
@@ -145,13 +160,13 @@
          background:#25D366;color:#fff;font-weight:700;font-size:.98rem;
          text-decoration:none}
   .wabtn:active{opacity:.85}
-  .payafter-n{font-size:.78rem;color:#7A8496;line-height:1.6;margin-top:9px}
+  .payafter-n{font-size:.78rem;color:var(--ink-soft);line-height:1.6;margin-top:9px}
   .ocrbtn{position:relative;display:block;width:100%;margin-top:9px;padding:12px 74px 12px 13px;
           background:#fff;border:1.5px solid var(--board-green);border-radius:11px;
           text-align:left;font-family:inherit;cursor:pointer}
   .ocrbtn:active{background:#F3F7F3}
   .ocrbtn-t{display:block;font-size:.95rem;font-weight:700;color:var(--ink)}
-  .ocrbtn-s{display:block;font-size:.78rem;color:#7A8496;line-height:1.45;margin-top:3px}
+  .ocrbtn-s{display:block;font-size:.78rem;color:var(--ink-soft);line-height:1.45;margin-top:3px}
   .ocrbtn-tag{position:absolute;top:12px;right:12px;font-size:.66rem;font-weight:700;
               background:var(--board-green);color:#fff;border-radius:5px;padding:2px 6px;
               white-space:nowrap}
@@ -162,19 +177,19 @@
   .phead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
   /* 品牌名退做細字加闊字距：唔應該同賣點爭注意力。 */
   .pbrand{font-size:.72rem;letter-spacing:1.5px;color:var(--board-green);font-weight:700}
-  .pprice{font-size:.78rem;color:#7A8496;line-height:1}
+  .pprice{font-size:.78rem;color:var(--ink-muted);line-height:1}
   .pprice b{font-size:1.95rem;color:var(--board-green);letter-spacing:-1px}
   .pfeat{display:flex;gap:12px;margin-bottom:15px}
   .pfeat-i{flex:0 0 38px;height:38px;border-radius:50%;background:#E8F0E9;
            color:var(--board-green);display:flex;align-items:center;justify-content:center}
   .pfeat-i svg{width:19px;height:19px}
   .pfeat-t{font-size:1.02rem;font-weight:700;line-height:1.35;margin-bottom:3px}
-  .pfeat-s{font-size:.82rem;color:#7A8496;line-height:1.55}
+  .pfeat-s{font-size:.82rem;color:var(--ink-soft);line-height:1.55}
   .pfoot{border-top:1px solid #EAE7DA;margin-top:18px;padding-top:12px;
-         font-size:.75rem;color:#9AA3B0;text-align:center;margin-bottom:11px}
+         font-size:.75rem;color:var(--ink-soft);text-align:center;margin-bottom:11px}
   .advtoggle{display:block;width:100%;margin-top:11px;padding:10px;
              background:none;border:1px dashed #D8D5C8;border-radius:9px;
-             font-family:inherit;font-size:.83rem;color:#7A8496;cursor:pointer}
+             font-family:inherit;font-size:.83rem;color:var(--ink-muted);cursor:pointer}
   .advtoggle:active{background:#F3F1E9}
   .newtag{font-size:.6rem;font-weight:700;background:#E8792B;color:#fff;
           border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;
@@ -202,7 +217,7 @@
   .plusbox a{display:block;text-align:center;background:var(--board-green);color:#fff;
              padding:11px;border-radius:11px;text-decoration:none;font-weight:600;
              font-size:.93rem;box-shadow:0 3px 0 #1F5940}
-  .plusbox .ghost{display:block;margin:8px auto 0;font-size:.82rem;color:#7A8496}
+  .plusbox .ghost{display:block;margin:8px auto 0;font-size:.82rem;color:var(--ink-muted)}
   .checkline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.9rem}
   .checkline input{width:18px;height:18px;accent-color:var(--board-green)}
   .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
@@ -230,7 +245,7 @@
     box-shadow:0 6px 0 #1F5940, var(--shadow);
   }
   .speak-btn:active{box-shadow:0 2px 0 #1F5940}
-  .speak-label{margin-top:10px;font-size:.85rem;color:#7A8496}
+  .speak-label{margin-top:10px;font-size:.85rem;color:var(--ink-muted)}
   .slow-btn{
     margin-top:6px;background:#fff;color:var(--board-green);
     border:1.5px solid #C9C6B8;font-size:.9rem;padding:9px 16px;border-radius:10px;
@@ -293,7 +308,7 @@
   .optin-msg{font-size:.85rem;margin-top:9px;min-height:1.1em}
   .optin-msg.ok{color:var(--board-green);font-weight:700}
   .optin-msg.err{color:var(--pen-red)}
-  .optin .ghost{display:block;margin:6px auto 0;font-size:.82rem;color:#7A8496}
+  .optin .ghost{display:block;margin:6px auto 0;font-size:.82rem;color:var(--ink-muted)}
   /* WhatsApp 入群掣 —— 刻意做成 a 連結，唔做 button：
      36% 流量係 in-app 瀏覽器（FB／IG），嗰啲環境成日封 window.open()，
      但封唔到一條普通連結。所以個掣本身就係條連結。
@@ -305,12 +320,12 @@
     background:#25D366;color:#fff;box-shadow:0 4px 0 #1B9E4B;
     transition:transform .08s ease, box-shadow .08s ease}
   .optin-row.single .wa-btn:active{transform:scale(.97);box-shadow:0 1px 0 #1B9E4B}
-  .sitefoot{margin:26px 4px 0;font-size:.82rem;line-height:1.75;color:#7A8496}
+  .sitefoot{margin:26px 4px 0;font-size:.82rem;line-height:1.75;color:var(--ink-muted)}
   .sitefoot p{margin-bottom:3px}
   .sitefoot b{color:var(--ink)}
   .sitefoot a{color:var(--board-green);font-weight:700;text-decoration:none}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .topbar .count{font-size:.85rem;color:#7A8496}
+  .topbar .count{font-size:.85rem;color:var(--ink-muted)}
   .hidden{display:none}
 
   /* ---------- 段落默書（Plus） ---------- */
@@ -325,8 +340,10 @@
             color:var(--ink);font-size:.76rem;flex:none;
             display:inline-flex;align-items:center;justify-content:center}
   .sent.now .sent-num{background:var(--board-green);color:#fff}
+  /* 44px = Apple／Google 建議嘅最細觸控高度。之前 ~30px，
+     家長一隻手揸住電話、大拇指撳，好易撳錯隔籬個掣。 */
   .sent-head button{background:#fff;border:1.5px solid #C9C6B8;border-radius:8px;
-                    padding:5px 10px;font-size:.82rem;color:var(--ink)}
+                    min-height:44px;padding:8px 14px;font-size:.85rem;color:var(--ink)}
   .sent-head .sp{flex:1}
   .sent input{width:100%;border:none;border-bottom:1.5px solid var(--rule);
               background:transparent;padding:5px 2px;color:var(--ink);
@@ -346,7 +363,7 @@
   .ansrow .w{flex:1;font-size:1.02rem;font-family:Georgia,"Times New Roman",serif;
              word-break:break-word;color:var(--ink)}
   .ansrow button{background:#fff;border:1.5px solid #C9C6B8;border-radius:8px;
-                 padding:5px 10px;font-size:.85rem;flex:none}
+                 min-width:44px;min-height:44px;padding:8px 12px;font-size:.85rem;flex:none}
   .paperhint{background:var(--soft);border-radius:9px;padding:10px 13px;
              font-size:.85rem;color:#5C6675;line-height:1.6;margin-bottom:14px}
   .paratrial{margin-top:12px;background:var(--soft);border-radius:9px;
@@ -368,8 +385,8 @@
   .mk-ans b{color:var(--board-green)}
   .para-score{text-align:center;padding:4px 0 18px}
   .para-msg{font-size:1.05rem;font-weight:700;margin-top:2px}
-  .para-detail{font-size:.85rem;color:#7A8496;line-height:1.8;margin-top:7px}
-  .legend{font-size:.78rem;color:#7A8496;line-height:1.9;
+  .para-detail{font-size:.85rem;color:var(--ink-muted);line-height:1.8;margin-top:7px}
+  .legend{font-size:.78rem;color:var(--ink-muted);line-height:1.9;
           background:var(--soft);border-radius:9px;padding:9px 12px;margin-bottom:14px}
   .legend i{font-style:normal;font-weight:700}
 
@@ -389,8 +406,8 @@
              position:relative}
   /* 右上角永遠有個 ×，唔使碌到底都關到窗。 */
   .modal-x{position:sticky;top:-6px;float:right;margin:-10px -6px 0 0;
-           width:34px;height:34px;border:0;background:none;font-size:1.5rem;
-           line-height:1;color:#9AA3B0;cursor:pointer;z-index:2}
+           width:44px;height:44px;border:0;background:none;font-size:1.6rem;
+           line-height:1;color:var(--ink-muted);cursor:pointer;z-index:2}
   .modal-box h3{font-size:1.05rem;margin-bottom:8px}
   .modal-box p{font-size:.87rem;color:#5C6675;line-height:1.65;margin-bottom:13px}
   .modal-box input{width:100%;border:1.5px solid #D8D5C8;border-radius:10px;
@@ -417,7 +434,7 @@
   .ab-now .dot.on{background:var(--board-green);box-shadow:0 0 0 4px rgba(31,107,69,.16)}
   .ab-again{display:none;gap:8px;margin-top:10px}
   .ab-again.show{display:flex}
-  .ab-again button{flex:1;padding:8px;border-radius:9px;font:inherit;font-size:.8rem;
+  .ab-again button{flex:1;min-height:44px;padding:8px;border-radius:9px;font:inherit;font-size:.82rem;
                    background:#fff;border:1px solid var(--line);color:var(--ink)}
   .ab-again button b{color:var(--board-green)}
   /* 試用完咗嘅提示：語氣先行，唔用價錢大字 */
@@ -520,20 +537,6 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="iabwarn hidden" id="iabWarn">
-    ⚠️ 你而家喺 <b>Facebook／IG 入面</b>開緊，好可能<b>冇聲</b>。<br>
-    撳右上角 <b>⋯</b> → <b>「喺瀏覽器開啟」</b>（Open in browser）就會正常。
-  </div>
-
-  <div class="a2hs hidden" id="a2hs">
-    <div class="a2hs-h">📲 加到主畫面，下次一撳就用到</div>
-    <div class="a2hs-p" id="a2hsHow"></div>
-    <div class="a2hs-row">
-      <button class="primary hidden" id="btnA2hsGo">加到主畫面</button>
-      <button class="ghost" id="btnA2hsSkip">唔使喇</button>
-    </div>
-  </div>
-
   <header class="app">
     <svg class="logo" viewBox="0 0 100 100" role="img" aria-label="貼堂 TipTong">
       <rect width="100" height="100" rx="22" fill="#2E6E52"/>
@@ -545,6 +548,25 @@
     </svg>
     <div class="brand"><h1>貼堂</h1><span class="en">TipTong</span></div>
   </header>
+  <!-- 只喺設定頁出（見 show()）：默緊書時佢只會推低個喇叭同輸入框。 -->
+  <div id="lede">
+    <p class="lede">貼上學校英文詞表，<b>自動讀、自動改</b>，錯字自動再默。</p>
+    <p class="lede-s">免費用 · 唔使註冊 · 小一至小六 · 可以印默書紙</p>
+  </div>
+
+  <!-- 兩個橫額擺喺價值說明之後：第一眼要先知呢個係咩，先至講點用得好啲。 -->
+  <div class="iabwarn hidden" id="iabWarn">
+    🔇 FB／IG 入面可能冇聲：撳右上角 <b>⋯</b> →<b>「喺瀏覽器開啟」</b>
+  </div>
+
+  <div class="a2hs hidden" id="a2hs">
+    <div class="a2hs-h">📲 加到主畫面，下次一撳就用到</div>
+    <div class="a2hs-p" id="a2hsHow"></div>
+    <div class="a2hs-row">
+      <button class="primary hidden" id="btnA2hsGo">加到主畫面</button>
+      <button class="ghost" id="btnA2hsSkip">唔使喇</button>
+    </div>
+  </div>
 
   <!-- ============ SETUP ============ -->
   <section id="viewSetup">
@@ -578,7 +600,6 @@ I like fruit."></textarea>
       <div class="saverow">
         <select id="savedList"><option value="">— 揀返之前儲低嘅詞表 —</option></select>
         <button class="secondary" id="btnLoad">載入</button>
-        <button class="ghost" id="btnDel">刪除</button>
       </div>
       <div class="listcount" id="listCount"></div>
 
@@ -654,32 +675,22 @@ I like fruit."></textarea>
         <button class="secondary" id="btnPrint" style="flex:1">列印 / 儲存 PDF</button>
       </div>
     </div>
-    <!-- 定價區。之前成個站淨係得一句「睇下貼堂 Plus」，
-         家長要撳入去先知賣幾多錢、包咩 —— 22 個 pay_view、0 單，
-         「唔知賣緊乜」係其中一個講得通嘅解釋。
-         擺喺列印卡下面：呢個位嘅人已經行完成個免費流程，
-         擺喺最頂反而似賣廣告，未用過就見到價錢會嚇走人。
-         買咗嘅人唔應該再見到，見 refreshPricing。 -->
-    <!-- 定價區。之前成個站淨係得一句「睇下貼堂 Plus」，
-         家長要撳入去先知賣幾多錢、包咩 —— 22 個 pay_view、0 單，
-         「唔知賣緊乜」係其中一個講得通嘅解釋。
-         用單卡清單，唔用免費 vs Plus 對比表：得兩個付費功能，
-         逐行對比反而引人諗「免費夠唔夠用」，幫倒忙。
-         擺喺列印卡下面：行到呢個位嘅人已經用完成個免費流程，
-         擺喺最頂未用過就見到價錢，會嚇走人。
-         買咗嘅人唔應該再見到，見 refreshPricing。 -->
-    <!-- 定價卡。文案原則：講家長慳到咩，唔係列功能名。
-         「段落默書無限用」係功能名，家長唔知關佢咩事；
-         「唔使自己讀」先係佢每晚真正嘅痛。
-         圖標用內嵌 SVG，唔用 emoji —— 每部機 emoji 樣都唔同，
-         有啲出彩色卡通，同板書風格夾唔埋。
-         買咗嘅人唔應該再見到，見 refreshPricing。 -->
+    <!-- 定價卡。
+         · 位置：擺喺列印卡下面。行到呢度嘅人已經用完成個免費流程；
+           擺喺最頂，未用過就見到價錢，會嚇走人。
+         · 由來：之前成個站淨係得一句「睇下貼堂 Plus」，家長要撳入去先知
+           賣幾多錢、包咩 —— 22 個 pay_view、0 單。
+         · 用單卡清單，唔用免費 vs Plus 對比表：逐行對比反而引人諗
+           「免費夠唔夠用」。
+         · 文案講家長慳到咩，唔係列功能名。
+         · 圖標用內嵌 SVG，唔用 emoji —— 每部機 emoji 樣都唔同。
+         · 買咗嘅人唔應該再見到，見 refreshPricing。 -->
     <div class="card pricing" id="pricingCard">
       <div class="phead">
         <span class="pbrand">貼堂 PLUS</span>
         <span class="pprice">HK$<b>88</b></span>
       </div>
-      <div class="ptitle">唔使次次重新打</div>
+      <div class="ptitle">讀得清楚，唔使逐個字打</div>
       <div class="psub">一次付費，永久使用 · 更方便咁準備每星期默書</div>
 
       <div class="pfeat">
@@ -959,7 +970,7 @@ I like fruit."></textarea>
           <span class="pbrand">貼堂 PLUS</span>
           <span class="pprice">HK$<b>88</b></span>
         </div>
-        <div class="ptitle">唔使次次重新打</div>
+        <div class="ptitle">讀得清楚，唔使逐個字打</div>
         <div class="pfeat">
           <span class="pfeat-i" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -1171,7 +1182,13 @@ function tryNextImg(img){
   var $=function(id){return document.getElementById(id)};
   var views={setup:$('viewSetup'),practice:$('viewPractice'),result:$('viewResult'),
              para:$('viewPara'),pararesult:$('viewParaResult')};
-  function show(name){for(var k in views){views[k].classList.toggle('hidden',k!==name)}window.scrollTo(0,0)}
+  function show(name){
+    for(var k in views){views[k].classList.toggle('hidden',k!==name)}
+    var ld=document.getElementById('lede'); if(ld)ld.classList.toggle('hidden',name!=='setup');
+    window.scrollTo(0,0);
+    // 第一次默書完成之後，返到主畫面先問「加到主畫面」（見 a2hsPending）
+    if(name==='setup'&&a2hsPending){a2hsPending=false;if(a2hsKind)showA2hs(a2hsKind)}
+  }
 
   /* ---------- word list ---------- */
   function getWords(){
@@ -1715,6 +1732,7 @@ function tryNextImg(img){
          （dc_para_runs），有自己嘅 para_done，撈埋會搞亂個 value 意思。 */
       var pruns=bumpRuns();
       track('dictation_done',pruns);
+      if(pruns===1)a2hsPending=true;
       show('result');
       return;
     }
@@ -1747,6 +1765,7 @@ function tryNextImg(img){
     if(selectedGV() && gvAllowed()) gvMarkToday();
     var runs=bumpRuns();
     track('dictation_done',runs);
+    if(runs===1)a2hsPending=true;
     $('plusBox').classList.toggle('hidden',
       !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
     if(!$('plusBox').classList.contains('hidden')){
@@ -2592,7 +2611,7 @@ function tryNextImg(img){
       d.innerHTML=
         '<div class="sent-head"><span class="sent-num">'+(o.i+1)+'</span>'+
           (clean?'<span style="color:var(--board-green);font-weight:700">全對 ✓</span>'
-                :'<span style="color:#7A8496;font-size:.8rem">'+bits.join('　')+'</span>')+
+                :'<span style="color:var(--ink-muted);font-size:.8rem">'+bits.join('　')+'</span>')+
         '</div>'+
         '<div class="mk">'+(r.html||'<span class="miss">（冇寫）</span>')+'</div>'+
         (clean?'':'<div class="mk-ans">正確：<b>'+escapeHtml(correct)+'</b></div>');
@@ -2897,6 +2916,10 @@ function tryNextImg(img){
     $('listName').value='';
     track('demo_click','word');
     $('wordInput').scrollIntoView({block:'nearest'});
+    /* 「開始默書」喺手機第一屏以下（~1,100px），撳完試用佢會以為冇反應。
+       同段落 demo 一樣，直接帶佢去個掣。 */
+    var st=$('btnStart');
+    if(st)setTimeout(function(){st.scrollIntoView({block:'center',behavior:'smooth'})},120);
   };
   $('btnDemoPara').onclick=function(){
     $('wordInput').value=DEMO_PARA;
@@ -2938,13 +2961,9 @@ function tryNextImg(img){
     $('wordInput').value=o[name].join('\n');
     $('listName').value=name;
   };
-  $('btnDel').onclick=function(){
-    var name=$('savedList').value;
-    if(!name){alert('請先揀一個詞表');return}
-    if(!confirm('刪除「'+name+'」？刪咗攞唔返。'))return;
-    var o=readLists();delete o[name];
-    if(writeLists(o)){refreshSaved();$('savedList').value=''}
-  };
+  /* 2026-09-27 剷走「刪除」掣。
+     ⚠️ 後果（刻意接受）：免費版儲滿 3 張之後唔可以騰位，只可以用同一個名
+        覆蓋舊嗰張（canSaveNew 容許覆蓋）；Plus 用家嘅清單亦只會越來越長。 */
   refreshSaved();
 
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
@@ -2986,8 +3005,22 @@ function tryNextImg(img){
     $('a2hs').classList.add('hidden');
   });
 
+  /* 未完成過第一次默書唔出「加到主畫面」。
+     家長未知個工具值唔值得加，第一屏見到就只係多一個叫佢做嘢嘅橫額，
+     仲會推低「呢個係咩」嘅說明。完成過一次先問，佢已經知道有用。
+     ⚠️ 2026-09-27 起 pwa_prompt 嘅意思變咗：只數「用過一次之後」嘅人，
+        同之前嘅數字唔好直接比較。 */
+  var a2hsKind=null;
+  /* 完成第一次默書之後唔即刻出：結果頁已經有 WhatsApp 邀請卡，
+     同一版面兩個 CTA 會互相搶。等佢返到主畫面先出。 */
+  var a2hsPending=false;
+  function runCount(){
+    try{return parseInt(localStorage.getItem('dc_runs')||'0',10)||0}catch(e){return 0}
+  }
   function showA2hs(kind){
     if(isStandalone()||a2hsDismissed())return;
+    a2hsKind=kind;                     // 記低平台，完成第一次默書之後再叫
+    if(runCount()<1)return;
     var box=$('a2hs'),how=$('a2hsHow'),go=$('btnA2hsGo');
     if(!box)return;
     if(kind==='android'){

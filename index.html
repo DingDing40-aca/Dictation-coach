@@ -883,9 +883,9 @@ I like fruit."></textarea>
         <span class="count" id="paraScoreLabel"></span>
       </div>
       <div class="legend">
-        <i style="color:#D8453C">串錯字</i>（紅色底波浪）　·　
-        <i style="color:#C77A12">標點／大細楷</i>（橙色）　·　
-        <i style="color:#D8453C">漏咗</i>（紅底）　·　
+        <i style="color:#D8453C">串錯字</i>（紅色底波浪）　·
+        <i style="color:#C77A12">標點／大細楷</i>（橙色）　·
+        <i style="color:#D8453C">漏咗</i>（紅底）　·
         <i style="color:#9AA3B2">多咗</i>（刪除線）
       </div>
       <div id="paraMarks"></div>
@@ -941,7 +941,7 @@ I like fruit."></textarea>
       <button class="modal-x" id="gvWallX" aria-label="關閉">×</button>
       <div class="gvw-h">Cathy 嘅試用期完咗</div>
       <p class="gvw-p">
-        多謝你呢排用貼堂 🙏 你頭三次默書用緊嘅係 <b>Cathy</b> 真人發聲，
+        多謝你呢排用貼堂 🙏 你頭三日默書用緊嘅係 <b>Cathy</b> 真人發聲，
         試用期已經用完，之後會轉返基本發聲。
       </p>
       <div class="ab">
@@ -1162,12 +1162,19 @@ function tryNextImg(img){
   var EVENT_ENDPOINT='https://docs.google.com/forms/d/e/1FAIpQLScYXRgbgBorn6pnCet8KIJLy6a02lXx-1E1UFiLuMMXMv6i-g/formResponse';
   var EVENT_FIELD='entry.858115340';
 
+  /* 2026-09-29：記住呢次開頁嘅 ID。
+     storage 完全被封（getItem 都 throw）嘅機，舊版一律回 'nostore'，
+     即係全部封咗嘅機喺數據入面變成同一部 —— 來源追蹤會嚴重少計。
+     而家改成每次開頁一個 'm' 開頭嘅臨時 ID，同一次開頁內嘅事件仍然對得上。 */
+  var _did=null;
   function deviceId(){
+    if(_did)return _did;
     try{
       var d=localStorage.getItem('dc_did');
       if(!d){d=Math.random().toString(36).slice(2,10);localStorage.setItem('dc_did',d)}
-      return d;
-    }catch(e){return 'nostore'}
+      _did=d;
+    }catch(e){_did='m'+Math.random().toString(36).slice(2,9)}
+    return _did;
   }
   /* 送格式：事件|裝置|數值　—— Google Form 自己會加時間戳 */
   function track(ev,val){
@@ -1177,6 +1184,63 @@ function tryNextImg(img){
       fd.append(EVENT_FIELD, ev+'|'+deviceId()+'|'+(val===undefined?'':val));
       fetch(EVENT_ENDPOINT,{method:'POST',mode:'no-cors',body:fd});
     }catch(e){}
+  }
+
+  /* ==================================================================
+     來源追蹤（2026-09-29 新增）
+     ------------------------------------------------------------------
+     每條 FB post 用一條唔同嘅連結：tiptonghk.com/?src=fb1
+     src 只准英文細階、數字、_ 同 -，最長 24 個字（中文唔收 ——
+     FB 會將中文 encode 成一大串 %E4…，好易 copy 漏）。
+
+     送出去嘅事件（全部係 事件|裝置|來源 格式，value 一定有嘢，
+     所以唔會觸發 SPLIT 食咗空欄、令欄位錯位嘅問題）：
+       src       撳 post 條 link 入嚟（每次開頁一次）
+       src_act   完成第一次任何默書（單詞／紙筆／段落都計）
+       src_para  完成段落默書
+       src_ocr   影相入字成功
+       src_paid  解鎖 Plus
+     下游事件跟「最近一次帶佢入嚟嗰條 post」計（dc_src）。
+
+     ⚠️ 唔可以喺 first_open 判斷之前 send 任何事件：track() 會叫
+        deviceId()，即刻寫入 dc_did，first_open 就永遠唔會出。
+        所以 'src' 呢個事件喺檔尾 first_open 嗰段之後先送。
+     ⚠️ 付款通常喺 WhatsApp 開解鎖 link，同 FB 內置瀏覽器唔係同一個
+        storage，src_paid 會漏數。所以付款 WhatsApp 預填訊息都會帶埋
+        來源（見 payWa），以你 WhatsApp 收到嘅為準。
+     ================================================================== */
+  var SRC='',SRC_FROM_URL=false;
+  function parseSrc(search){
+    var raw='';
+    try{
+      var q=new URLSearchParams(search||'');
+      raw=q.get('src')||q.get('utm_source')||'';
+    }catch(e){}
+    raw=String(raw).trim().toLowerCase();
+    return /^[a-z0-9_-]{1,24}$/.test(raw)?raw:'';
+  }
+  (function(){
+    var s=parseSrc(location.search);
+    if(s){
+      SRC=s;SRC_FROM_URL=true;
+      try{localStorage.setItem('dc_src',s)}catch(e){}
+      /* 喺網址剷走 src，家長再 share 出去就唔會帶住你條 post 嘅標籤。
+         其他參數同 #hash（#unlock、#gen）照留。 */
+      try{
+        var q=new URLSearchParams(location.search);
+        q.delete('src');q.delete('utm_source');
+        var rest=q.toString();
+        history.replaceState(null,'',location.pathname+(rest?'?'+rest:'')+location.hash);
+      }catch(e){}
+    }else{
+      try{SRC=localStorage.getItem('dc_src')||''}catch(e){}
+    }
+  })();
+  var srcSent={};
+  function trackSrc(stage){
+    if(!SRC||srcSent[stage])return;
+    srcSent[stage]=1;
+    track(stage==='open'?'src':'src_'+stage, SRC);
   }
 
   var $=function(id){return document.getElementById(id)};
@@ -1283,7 +1347,7 @@ function tryNextImg(img){
   var voiceFellBack=false;
   function fillVoiceList(){
     var sel=$('optVoice');if(!sel)return;
-    var cur=sel.value||savedVoice();
+    var cur=savedVoice();
     var pool=voices.filter(allowedVoice);
     voiceFellBack=false;
     if(!pool.length){          // 一把都冇就唔可以留個空掣，回落所有英文聲
@@ -1376,11 +1440,26 @@ function tryNextImg(img){
   }
 
   /* 記住揀咗嘅聲，唔使每次重新揀 */
+  /* 2026-09-30：新用戶預設 Cathy。
+     基本發聲（speechSynthesis）喺 FB／IG 內置瀏覽器成日冇聲，而 Cathy 係
+     mp3 聲音檔，實測喺 FB 入面播得到。舊版預設「自動揀」＝ 一大批 FB
+     新用戶第一次撳落去就係冇聲，佢哋未知個 app 有冇用已經走咗。
+     ⚠️ 只係「未揀過」先預設 Cathy（dc_voice 係 null）。揀過「自動揀」
+        嘅人存咗 ''，照尊重，唔會被搶返去 Cathy。
+     ⚠️ voiceChoice 記住今次開頁用家親手揀嘅：storage 被封嘅機寫唔入
+        dc_voice，冇呢個變數嘅話 onvoiceschanged 一觸發就會搶返去 Cathy。 */
+  var DEFAULT_VOICE='gtts:c';
+  var voiceChoice=null;
   function savedVoice(val){
-    try{
-      if(val===undefined) return localStorage.getItem('dc_voice')||'';
-      localStorage.setItem('dc_voice',val);
-    }catch(e){}
+    if(val===undefined){
+      if(voiceChoice!==null) return voiceChoice;
+      try{
+        var v=localStorage.getItem('dc_voice');
+        return v===null?DEFAULT_VOICE:v;
+      }catch(e){ return DEFAULT_VOICE }
+    }
+    voiceChoice=val;
+    try{ localStorage.setItem('dc_voice',val) }catch(e){}
     return '';
   }
 
@@ -1665,8 +1744,8 @@ function tryNextImg(img){
         單詞用 normalize，段落用 coreOf／stripPunct，三個都要。 */
   function unifyQuotes(s){
     return (s||'')
-      .replace(/[\u2018\u2019\u02BC\u02B9\u2032\u00B4\u0060]/g,"'")
-      .replace(/[\u201C\u201D\u2033]/g,'"');
+      .replace(/[‘’ʼʹ′´`]/g,"'")
+      .replace(/[“”″]/g,'"');
   }
   function normalize(s){return unifyQuotes(s).trim().replace(/\s+/g,' ').toLowerCase()}
 
@@ -1732,6 +1811,7 @@ function tryNextImg(img){
          （dc_para_runs），有自己嘅 para_done，撈埋會搞亂個 value 意思。 */
       var pruns=bumpRuns();
       track('dictation_done',pruns);
+      trackSrc('act');
       if(pruns===1)a2hsPending=true;
       show('result');
       return;
@@ -1765,6 +1845,7 @@ function tryNextImg(img){
     if(selectedGV() && gvAllowed()) gvMarkToday();
     var runs=bumpRuns();
     track('dictation_done',runs);
+    trackSrc('act');
     if(runs===1)a2hsPending=true;
     $('plusBox').classList.toggle('hidden',
       !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
@@ -1938,6 +2019,7 @@ function tryNextImg(img){
     var norm=codeNormalize(code);
     track('para_unlock',norm);        /* 記低邊條碼用咗，方便對數 */
     if(src)track('unlock_src',src);
+    trackSrc('paid');
     setPlusUnlocked(norm);
     refreshPricing();refreshOcrTag();
     try{refreshSaved()}catch(e){}   /* 上限文案要即刻由「3／3」變返「無限」 */
@@ -2112,7 +2194,7 @@ function tryNextImg(img){
     if(plusUnlocked()){ h.innerHTML='真人發聲已解鎖 ✓'; return }
     var left=gvLeft();
     h.innerHTML = left>0
-      ? ('真人發聲免費試用，仲有 <b>'+left+'</b> 次默書')
+      ? ('真人發聲免費試用，仲有 <b>'+left+'</b> 日')
       : '真人發聲試用已完 · 而家會用基本發聲';
   }
 
@@ -2120,8 +2202,23 @@ function tryNextImg(img){
     track('voice_wall',String(gvDays().length));
     $('gvWall').classList.remove('hidden');
   }
-  $('gvWallX').onclick=function(){$('gvWall').classList.add('hidden')};
-  $('gvWallSkip').onclick=function(){$('gvWall').classList.add('hidden')};
+  /* ⚠️ 2026-09-30 修：舊版撳「用返基本發聲繼續」或者 × 只係閂咗個窗，
+     但把聲仍然揀住 Cathy —— 再撳「開始默書」又彈過同一個窗，永遠默唔到。
+     之前只有自己揀 Cathy 嘅人會中；改咗預設 Cathy 之後，所有人三日後都會中。
+     而家兩個掣都會轉返基本發聲並記低，之後唔會再彈；
+     「繼續」再順手幫佢開始默書，唔使佢再撳多次。 */
+  function gvWallToBasic(){
+    $('gvWall').classList.add('hidden');
+    savedVoice('');
+    $('optVoice').value='';
+    refreshVoiceHint();
+  }
+  $('gvWallX').onclick=function(){ track('voice_wall_skip','x'); gvWallToBasic() };
+  $('gvWallSkip').onclick=function(){
+    track('voice_wall_skip','go');
+    gvWallToBasic();
+    $('btnStart').click();
+  };
   $('gvWallGo').onclick=function(){
     $('gvWall').classList.add('hidden');
     track('plus_click','voicewall');
@@ -2552,6 +2649,7 @@ function tryNextImg(img){
   function showParaResult(){
     if(paperMode){
       track('paper_done','para');
+      trackSrc('act');trackSrc('para');
       var box2=$('paraMarks');box2.innerHTML='';
       paraList.forEach(function(sent,i){
         var d=document.createElement('div');
@@ -2619,6 +2717,7 @@ function tryNextImg(img){
     });
 
     track('para_done',sc.score);
+    trackSrc('act');trackSrc('para');
     var plusPrompt=(!plusUnlocked()&&paraLeft()===0);
     /* 試用用完嗰一刻係全個 app 最貴嘅一格。守住「同一版面唔會同時出兩個
        CTA」—— 嗰陣唔好用免費詞表包搶咗 $88 嘅注意力。 */
@@ -3074,6 +3173,8 @@ function tryNextImg(img){
     if(isNew) track('first_open');
     if(now-last > 30*60*1000) track('app_open');
   })();
+  /* 來源：一定要喺 first_open 判斷之後先送（見 parseSrc 上面嘅註解）。 */
+  if(SRC_FROM_URL) trackSrc('open');
 
   $('btnStart').onclick=function(){
     unlockSpeech(); unlockAudio();   // 一定要喺呢個手勢入面行，唔可以延後
@@ -3177,7 +3278,7 @@ function tryNextImg(img){
   function refreshPricing(){
     var c=$('pricingCard');
     if(c)c.classList.toggle('hidden',plusUnlocked());
-    /* 付咗錢要喺主畫面睇得出分別，唔可以淨係「價錢卡消失」—— 
+    /* 付咗錢要喺主畫面睇得出分別，唔可以淨係「價錢卡消失」——
        消失係減嘢，家長讀唔到「我成功咗」。 */
     try{document.body.classList.toggle('plus-on',plusUnlocked())}catch(e){}
   }
@@ -3222,6 +3323,9 @@ function tryNextImg(img){
       track('pay_click','alipay');
     };
     var wa=$('payWa');
+    /* 來源寫埋落預填訊息尾：付款多數喺另一個瀏覽器完成，src_paid 會漏，
+       你喺 WhatsApp 收到嘅呢句先係最準嘅「邊條 post 帶嚟呢單」。 */
+    if(wa&&SRC)wa.href+=encodeURIComponent('（'+SRC+'）');
     if(wa)wa.addEventListener('click',function(){track('pay_click','whatsapp')});
     var qr=$('btnPayQr');
     if(qr)qr.onclick=function(){
@@ -3331,7 +3435,7 @@ function tryNextImg(img){
          拆散咗就冇得做段落默書。
      所以先偵測係邊種，唔可以一套清理走天下。
      ================================================================== */
-  var CJK=/[\u3000-\u303F\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/;
+  var CJK=/[　-〿㐀-䶿一-鿿豈-﫿＀-￯]/;
 
   /* 詞性標記同括號補充（(v.) (adj.) (about)）對默書冇用，
      而且會被當成字讀出嚟，一律剷走。 */
@@ -3339,7 +3443,7 @@ function tryNextImg(img){
     return line
       .replace(new RegExp(CJK.source,'g'),' ')   // 中文
       .replace(/\([^)]*\)/g,' ')                 // 括號連內容
-      .replace(/[^A-Za-z'\u2019\- ]+/g,' ')      // 其餘符號、數字
+      .replace(/[^A-Za-z'’\- ]+/g,' ')      // 其餘符號、數字
       .replace(/\s+/g,' ').trim();
   }
   /* 垃圾字元過濾：Tesseract 讀中文吐出嚟嘅多數係無元音嘅短串（EJ、xk、ll）。
@@ -3355,7 +3459,7 @@ function tryNextImg(img){
     var raw=[];
     lines.forEach(function(l){
       stripWordlistNoise(l).split(/\s+/).forEach(function(t){
-        t=t.replace(/^[-'\u2019]+|[-'\u2019]+$/g,'');
+        t=t.replace(/^[-'’]+|[-'’]+$/g,'');
         if(looksLikeWord(t))raw.push(t);
       });
     });
@@ -3378,7 +3482,7 @@ function tryNextImg(img){
   function cleanParagraph(lines){
     return lines.map(function(l){
       return l.replace(/^\s*[\(\[]?\d{1,2}[\.\)\]]\s*/,'')
-              .replace(/[^A-Za-z0-9 '\u2019\-\.,!\?;:"]/g,'')
+              .replace(/[^A-Za-z0-9 '’\-\.,!\?;:"]/g,'')
               .replace(/\s+/g,' ').trim();
     }).filter(function(l){
       return l && l.length>=2 && /[A-Za-z]/.test(l);
@@ -3528,6 +3632,7 @@ function tryNextImg(img){
       if(!plusUnlocked())bumpOcrUsed();
       refreshOcrTag();
       track('ocr_ok',res.mode+':'+lines.length);
+      trackSrc('ocr');
       closeOcrModal();
       $('wordInput').scrollIntoView({behavior:'smooth',block:'center'});
       alert(res.mode==='words'
@@ -3605,7 +3710,7 @@ function tryNextImg(img){
          唔係 dc_ocrtrial（估錯過一次）。 */
       ['dc_plus','dc_gvdays','dc_runs','dc_para_runs','dc_ocr_runs',
        'dc_lists','dc_voice','dc_optin','dc_wa','dc_waskip','dc_plushint','dc_a2hs',
-       'dc_lastopen','dc_did']
+       'dc_lastopen','dc_did','dc_src']
         .forEach(function(k){ try{localStorage.removeItem(k)}catch(e){} });
       location.hash='';
       location.reload();

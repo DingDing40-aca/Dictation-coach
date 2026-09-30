@@ -1265,6 +1265,12 @@ function tryNextImg(img){
 
   /* ---------- speech ---------- */
   var voices=[];
+  /* ⚠️ 一定要喺 loadVoices() 第一次行之前宣告（見 savedVoice 註解）。
+     2026-09-30 踩過：放喺 savedVoice 隔籬，但 loadVoices() 喺上面已經行咗，
+     嗰陣兩個 var 仲係 undefined → 預設變咗「自動揀」。
+     Chrome 會再觸發 onvoiceschanged 救返，iPhone Safari 唔會，所以只係 iPhone 中。 */
+  var DEFAULT_VOICE='gtts:c';
+  var voiceChoice=null;
   /* 只留四把實測用得嘅聲（連佢哋嘅 Premium／Enhanced 版本）。
      系統會列出幾十把聲，大部分讀初小英文都糊，揀多咗只會嘥家長時間。
      ⚠️ 只列 getVoices() 交返嚟嗰啲——未落載嘅根本唔會出現。 */
@@ -1448,8 +1454,6 @@ function tryNextImg(img){
         嘅人存咗 ''，照尊重，唔會被搶返去 Cathy。
      ⚠️ voiceChoice 記住今次開頁用家親手揀嘅：storage 被封嘅機寫唔入
         dc_voice，冇呢個變數嘅話 onvoiceschanged 一觸發就會搶返去 Cathy。 */
-  var DEFAULT_VOICE='gtts:c';
-  var voiceChoice=null;
   function savedVoice(val){
     if(val===undefined){
       if(voiceChoice!==null) return voiceChoice;

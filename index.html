@@ -948,9 +948,9 @@ I like fruit."></textarea>
   <div class="modal hidden" id="gvWall">
     <div class="modal-box">
       <button class="modal-x" id="gvWallX" aria-label="關閉">×</button>
-      <div class="gvw-h">Cathy 嘅試用期完咗</div>
+      <div class="gvw-h"><span id="gvwName1">Cathy</span> 嘅試用期完咗</div>
       <p class="gvw-p">
-        多謝你呢排用貼堂 🙏 你頭三日默書用緊嘅係 <b>Cathy</b> 真人發聲，
+        多謝你呢排用貼堂 🙏 你頭三日默書用緊嘅係 <b id="gvwName2">Cathy</b> 真人發聲，
         試用期已經用完，之後會轉返基本發聲。
       </p>
       <div class="ab">
@@ -962,7 +962,7 @@ I like fruit."></textarea>
           <button data-ab2="plus">再聽 <b>Cathy</b></button>
         </div>
       </div>
-      <p class="gvw-s">解鎖貼堂 Plus 就可以一直用 Cathy 同 Deacons，一次付費，永久使用。</p>
+      <p class="gvw-s">解鎖貼堂 Plus 就可以一直用 Cathy、Ava 同 Deacons，一次付費，永久使用。</p>
       <div class="btnrow">
         <button class="primary" id="gvWallGo" style="flex:1">睇下貼堂 Plus</button>
       </div>
@@ -1291,15 +1291,18 @@ function tryNextImg(img){
      唔係 iPhone 用戶就淨返一把 Daniel。
      Ava／Serena／Lee 留住係為咗 Mac、Windows、Android，嗰邊攞得到。 */
   /* ================= Plus 真人發聲 =================
-     Cathy／Deacons 唔係瀏覽器聲，係經 /api/tts 叫 Google Cloud TTS。
-     client 只傳代號 'c'／'d'，server 用固定對照表換成完整 voice name ——
+     Cathy／Ava／Deacons 唔係瀏覽器聲，係經 /api/tts 叫 Google Cloud TTS。
+     client 只傳代號 'c'／'f'／'d'，server 用固定對照表換成完整 voice name ——
      所以就算有人偽造請求，都燒唔到貴 40 倍嗰啲等級。
 
      ⚠️ 免費試用以「有完成默書嘅日子」計，唔係計次數。
         計次數嘅話一個家長今晚練一次、默一次、錯字再默一次，
         一晚就燒晒三次 —— 佢仲未養成習慣就撞牆，價值感最低。
         計日就至少橫跨三次獨立使用，通常兩三個星期，撞牆嗰陣佢已經用開。 */
-  var GV = { 'gtts:c':{label:'Cathy', alias:'c'}, 'gtts:d':{label:'Deacons', alias:'d'} };
+  /* 2026-10-01：加 Ava（en-GB-Wavenet-F，女聲）。排 Cathy 後面：兩把女聲放埋一齊，
+     男聲 Deacons 排尾。⚠️ api/tts.js 一定要同步加 f，否則 server 查唔到
+     代號會靜靜哋跌返 Cathy —— 家長揀 Ava 聽到 Cathy，但冇任何 error。 */
+  var GV = { 'gtts:c':{label:'Cathy', alias:'c'}, 'gtts:f':{label:'Ava', alias:'f'}, 'gtts:d':{label:'Deacons', alias:'d'} };
   var GV_TRIAL_DAYS = 3;
   var LS_GVDAYS = 'dc_gvdays';
 
@@ -2213,6 +2216,10 @@ function tryNextImg(img){
 
   function gvWallShow(){
     track('voice_wall',String(gvDays().length));
+    /* 揀咗 Ava／Deacons 嘅人撞牆，唔可以話佢「Cathy 嘅試用期完咗」。
+       下面「聽吓分別」照播 Cathy —— 個對比係講音質，唔係講邊把聲。 */
+    var gv=selectedGV(), nm=gv?gv.label:'Cathy';
+    $('gvwName1').textContent=nm; $('gvwName2').textContent=nm;
     $('gvWall').classList.remove('hidden');
   }
   /* ⚠️ 2026-09-30 修：舊版撳「用返基本發聲繼續」或者 × 只係閂咗個窗，

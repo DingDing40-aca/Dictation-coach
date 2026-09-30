@@ -927,6 +927,7 @@ I like fruit."></textarea>
         <li>平放拍攝，光線充足、四邊入曬相</li>
         <li>中英夾雜都得，中文同 (v.)(adj.) 會自動剷走</li>
         <li>入完可以隨時手動改錯字</li>
+        <li>相片只用嚟認字，貼堂唔會儲存</li>
       </ul>
       <div class="btnrow">
         <button class="primary" id="btnOcrPick" style="flex:1">揀相 / 影相</button>
@@ -3507,12 +3508,29 @@ function tryNextImg(img){
     return true;
   }
   function extractWords(lines){
+    /* 2026-10-01：冇中文、冇詞性標記嘅詞表，每行保留做一個詞組，唔再拆散。
+       壓力測試撞到：相影斜咗，Tesseract 讀漏晒編號，詞組表跌咗入呢度，
+       「made a terrible mistake」被拆成 made / terrible / mistake（仲漏埋 a）。
+       有中文或者 (v.)(n.) 嘅，照舊逐個字抽 —— 嗰種每行一個字，拆先啱。 */
+    var joined=lines.join('\n');
+    var keepPhrases=!CJK.test(joined)&&!/\((v|n|adj|adv|prep|conj|pron)\.?\)/i.test(joined);
+    /* 大部分行都係單字 = 單字表：相影斜咗，Tesseract 有時將上下兩行併埋一行
+       （盲測：「giraffe teacher」），當詞組保留就錯。多字行少過四成就照舊拆。 */
+    var multi=lines.filter(function(l){return stripWordlistNoise(l).split(/\s+/).filter(looksLikeWord).length>=2}).length;
+    if(lines.length&&multi/lines.length<0.4)keepPhrases=false;
     var raw=[];
     lines.forEach(function(l){
+      var toks=[];
       stripWordlistNoise(l).split(/\s+/).forEach(function(t){
         t=t.replace(/^[-'’]+|[-'’]+$/g,'');
-        if(looksLikeWord(t))raw.push(t);
+        if(looksLikeWord(t)||(keepPhrases&&/^(a|A|I)$/.test(t)))toks.push(t);
       });
+      if(keepPhrases){
+        var mix=/[a-z]/.test(joined);
+        toks=toks.filter(function(t){return !(mix&&t.length>=2&&t===t.toUpperCase())});
+      }
+      if(keepPhrases&&toks.length>=2)raw.push(toks.join(' '));
+      else toks.forEach(function(t){if(looksLikeWord(t))raw.push(t)});
     });
     /* Tesseract 讀中文吐出嚟嘅殘留（EJ、SEE、FEB、SAREE）多數係全大階，
        而香港詞語表嘅英文字用 Title case 或者細階。所以只要成份表入面
@@ -3522,7 +3540,7 @@ function tryNextImg(img){
     var hasMixed=raw.some(function(t){return t!==t.toUpperCase()});
     var out=[],seen={};
     raw.forEach(function(t){
-      if(hasMixed&&t===t.toUpperCase())return;
+      if(hasMixed&&t.indexOf(' ')<0&&t===t.toUpperCase())return;
       var k=t.toLowerCase();
       if(seen[k])return;                          // 同一個字出現兩次唔重複
       seen[k]=1;out.push(t);
@@ -3537,7 +3555,16 @@ function tryNextImg(img){
               .replace(/\s+/g,' ').trim();
     }).filter(function(l){
       return l && l.length>=2 && /[A-Za-z]/.test(l);
-    });
+    }).reduce(function(out,l){
+      /* 一句太長轉咗行（「...at the」／「zoo.」）要駁返。上一行未以 . ! ? 收尾
+         就同呢行接埋。例外：上一行好短（≤4 字）而呢行大楷開頭 —— 嗰個多數係標題。 */
+      var n=out.length,prev=n?out[n-1]:'';
+      if(n&&!/[.!?]["'\u2019]?$/.test(prev)&&
+         !(prev.split(' ').length<=4&&/^[A-Z]/.test(l))){
+        out[n-1]=prev+' '+l; return out;
+      }
+      out.push(l); return out;
+    },[]);
   }
   /* 判斷係詞語表定短文。
      訊號一：有中文 —— 香港嘅詞語表先會中英對照，短文唔會。
@@ -3612,8 +3639,23 @@ function tryNextImg(img){
   function textByConfidence(d){
     var lines=ocrLines(d);
     if(!lines.length)return null;
+    /* 成版嘅信心中位數：相清楚（≥85）嘅時候，先放寬俾個別偏低嘅長字過關。 */
+    var allC=[];lines.forEach(function(l){(l.words||[]).forEach(function(w){
+      if(typeof w.confidence==='number')allC.push(w.confidence)})});
+    allC.sort(function(a,b){return a-b});
+    var pageMed=allC.length?allC[Math.floor(allC.length/2)]:0;
     var out=lines.map(function(l){
-      var ws=(l.words||[]).filter(function(w){
+      /* Tesseract 成日將大楷「I」讀成「|」（壓力測試：「| went to Japan」、
+         「| have ever had」，信心 95+）。「|」唔會係默書內容，所以後面緊接
+         細楷字嘅「|」就當係 I。只喺呢條（短文／詞表）路用 —— 表格路
+         （ocrItems）入面嘅「|」係表格線，嗰邊另外處理。 */
+      var raw=(l.words||[]).map(function(w,i,arr){
+        var nx=arr[i+1];
+        if((w.text||'').trim()==='|'&&nx&&/^[a-z]/.test(nx.text||''))
+          return {text:'I',confidence:Math.max(w.confidence||0,OCR_MIN_CONF)};
+        return w;
+      });
+      var ws=raw.filter(function(w){
         /* ⚠️ 試過對單字母另設一條高門檻（85），量度之後否決咗：
            實測真嘅 'I' 低至 80.3，而雜訊 'y' 去到 86.6、'v' 81.7 ——
            信心值喺單字母上面根本分唔開兩者。
@@ -3622,7 +3664,12 @@ function tryNextImg(img){
            所以單字母交返俾 ocrPlausible，統一用同一條門檻。 */
         if(typeof w.confidence!=='number')return false;
         if(!ocrPlausible(w.text))return false;
-        return w.confidence>=OCR_MIN_CONF;
+        /* 放寬：4 個字母或以上、大細楷正常（唔係全大楷）、信心 ≥45，
+           而且成版中位數 ≥85。壓力測試：「library(65)」卡正門檻被剷走。
+           雜訊假字實測都係短串（ul、PE、SH、Ce、eX），呢條唔會放佢哋入嚟。 */
+        if(w.confidence>=OCR_MIN_CONF)return true;
+        return w.confidence>=45&&pageMed>=85&&
+               /^[A-Za-z][a-z'\u2019\-]{3,}[.,!?;:]?$/.test((w.text||'').trim());
       });
       return ws.map(function(w){return w.text}).join(' ').trim();
     }).filter(function(s){
@@ -3649,108 +3696,343 @@ function tryNextImg(img){
      否則回傳 null，行返舊嘅詞語表／短文邏輯 —— 中英對照詞語表（每格一個字）
      唔會誤入呢條路。 */
   var NUM_TOKEN=/^[\(\[]?\d{1,2}[.,:)\]]$/;
-  function wordBox(w){
-    var b=w&&w.bbox; if(!b)return null;
-    if(typeof b.x0==='number')return {x0:b.x0,x1:b.x1};
-    return null;
+  /* 工作紙上面嘅標題／表頭／標籤，唔係默書內容。2026-10-01 用 64 張、
+     16 種版面壓力測試搵出嚟：「No. / Words / Meaning」表頭、
+     「Name: ___ Class: ___」、「Spelling List」、「B. Phrases」、「Words:」。
+     ⚠️ 單一個字唔會單靠字面當標籤（默書詞表本身可能有 date、class、name），
+        一定要有「A. / B.」字母編號、冒號結尾，或者成行 ≥2 個字全部係標籤字。 */
+  var LABEL_WORDS={};
+  ('name class date no number word words meaning meanings chinese english vocabulary vocab '+
+   'spelling list phrase phrases sentence sentences dictation passage unit lesson chapter part '+
+   'section useful language languages revision test quiz and of the for key').split(' ')
+    .forEach(function(w){LABEL_WORDS[w]=1});
+  var LETTER_BULLET=/^[A-H][.)]$/;
+  var POS_TAG=/^\(?(n|v|adj|adv|prep|conj|pron|phr|vt|vi|det|int|pl)\.?\)?[.,]?$/i;
+  var HEADINGS={Words:1,Phrases:1,Sentences:1,Vocabulary:1,Spelling:1,Dictation:1,Passage:1};
+  function isLabelText(t,bullet){
+    t=(t||'').trim(); if(!t)return false;
+    if(bullet)return true;
+    /* 大楷開頭、單獨成行嘅分段標題（編號讀漏咗嘅「B. Phrases」會淨返「Phrases」）。
+       只收呢幾個字，而且要大楷開頭 —— 詞表入面細楷嘅 words／passage 唔會中。 */
+    if(HEADINGS[t.replace(/[^A-Za-z]/g,'')]&&/^[^a-z]*[A-Z]/.test(t)&&t.split(/\s+/).length<=2)return true;
+    if(/:\s*$/.test(t)||/:\s*_{2,}/.test(t))return true;
+    var ws=t.toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean);
+    return ws.length>=2&&ws.length<=6&&ws.every(function(w){return LABEL_WORDS[w]});
   }
+  function wordBox(w){
+    var b=w&&w.bbox; if(!b||typeof b.x0!=='number'||typeof b.y0!=='number')return null;
+    return {x0:b.x0,x1:b.x1,y0:b.y0,y1:b.y1};
+  }
+  function median(a){
+    if(!a.length)return 0;
+    var s=a.slice().sort(function(x,y){return x-y});
+    return s[Math.floor(s.length/2)];
+  }
+  /* 2026-10-01 第二版（用 42 張合成工作紙壓力測試之後重寫）：
+     · 分欄唔再靠「同一行入面嘅大空位」—— Tesseract 成日將右欄讀成獨立一行，
+       而且右欄嘅編號經常讀漏，第一版遇到就全部當一欄，次序大亂。
+       而家將每一格嘅起點 x 座標分群，一群 = 一欄。
+     · 格入面唔再用信心門檻：實測「made(9) a(34) terrible(34)」全部讀啱但分數低，
+       門檻會剷走真字變成「made mistake」。有表格結構做背景，雜訊主要係表格線，
+       已經另外濾走；字形唔似英文嘅仍然用 ocrPlausible 攔。
+     · 一格兩行嘅長詞組：冇編號、同上一格嘅字對齊、而且貼得好近（少過一個字高）
+       就當續行，駁返上去。
+     · 次序：有編號就比較「逐欄讀」同「逐行讀」邊個令編號更連續（1→2→3），
+       揀連續得多嗰個；編號讀錯幾個都唔影響，因為係睇大多數。 */
   function ocrItems(d){
     var lines=ocrLines(d); if(!lines.length)return null;
-    var gaps=[],pageW=0;
+    var gaps=[],hs=[],pageW=0;
     lines.forEach(function(l){
       var ws=l.words||[];
       for(var i=0;i<ws.length;i++){
-        var b=wordBox(ws[i]); if(!b)continue;
+        var b=wordBox(ws[i]); if(!b)return;
         if(b.x1>pageW)pageW=b.x1;
+        hs.push(b.y1-b.y0);
         var pb=i?wordBox(ws[i-1]):null;
         if(pb)gaps.push(b.x0-pb.x1);
       }
     });
-    gaps.sort(function(a,b){return a-b});
-    var medGap=gaps.length?gaps[Math.floor(gaps.length/2)]:0;
-    var colGap=Math.max(medGap*3,pageW*0.03,1);
-    var rows=[],numbered=0,splitRows=0,starts=[];
-    lines.forEach(function(l){
+    if(!pageW)return null;                       // 冇位置資料：行返舊邏輯
+    var medGap=median(gaps),medH=median(hs)||1;
+    /* 上限用字高：如果每行得「左欄一個字＋右欄一個字」，唯一嘅字距就係欄距，
+       median 會變成幾百 px，門檻跟住爆咗，永遠拆唔到欄（壓力測試撞到）。 */
+    /* ×4.5：盲測「hada lot of fun」（OCR 黐埋兩個字、框位計短）字距係正常嘅 3.4 倍，
+       ×3 會誤拆；真表格欄距實測 5 倍以上。 */
+    var colGap=Math.max(Math.min(medGap*4.5,medH*2.5),pageW*0.03,1);
+
+    var cells=[];
+    lines.forEach(function(l,li){
       var ws=(l.words||[]).filter(function(w){
-        return (w.text||'').replace(/[|!\[\]{}_—–-]/g,'').trim()!=='';   // 表格線
+        return wordBox(w)&&(w.text||'').replace(/[|!\[\]{}_—–-]/g,'').trim()!=='';   // 表格線
       });
       var segs=[],cur=[];
       ws.forEach(function(w,i){
         var t=(w.text||'').trim();
         var b=wordBox(w),pb=i?wordBox(ws[i-1]):null;
-        var bigGap=b&&pb&&(b.x0-pb.x1)>colGap;
-        if(cur.length&&(bigGap||NUM_TOKEN.test(t))){segs.push(cur);cur=[]}
+        var bigGap=pb&&(b.x0-pb.x1)>colGap;
+        /* 編號同佢後面嘅字之間本身就有大空位（「1.   looked」），唔係分欄。 */
+        var c0=cur.length===1?(cur[0].text||'').trim():'';
+        var afterNum=cur.length===1&&(NUM_TOKEN.test(c0)||
+          (cur[0]===ws[0]&&/^\d{1,2}$/.test(c0)));      // 行頭冇標點嘅編號（表格 No. 欄）
+        if(cur.length&&((bigGap&&!afterNum)||NUM_TOKEN.test(t))){segs.push(cur);cur=[]}
         cur.push(w);
       });
       if(cur.length)segs.push(cur);
-      if(segs.length>1)splitRows++;
-      rows.push(segs.map(function(sg,si){
-        var num=NUM_TOKEN.test((sg[0].text||'').trim());
-        var fb=wordBox(sg[0]);
-        if(si>0&&fb)starts.push(fb.x0);
-        if(num)numbered++;
-        var words=(num?sg.slice(1):sg).filter(function(w){
-          return typeof w.confidence==='number'&&w.confidence>=OCR_MIN_CONF&&ocrPlausible(w.text);
-        }).map(function(w){return w.text});
-        return {num:num,x0:fb?fb.x0:null,text:words.join(' ').replace(/\s+/g,' ').trim()};
-      }));
+      segs.forEach(function(sg,si){
+        var first=(sg[0].text||'').trim();
+        /* 行頭一個冇標點嘅數字（表格「No.」欄入面嘅 1、2、3）都算編號。
+           只限行頭：「Unit 3 Dictation」中間個 3 唔算。 */
+        var isNum=NUM_TOKEN.test(first)||(si===0&&/^\d{1,2}$/.test(first));
+        var bullet=LETTER_BULLET.test(first);
+        var tw=(isNum||bullet?sg.slice(1):sg).filter(function(w){
+          return !POS_TAG.test((w.text||'').trim())&&ocrPlausible(w.text);
+        });
+        if(!tw.length&&!isNum)return;
+        var yb=tw.length?tw:sg;
+        cells.push({
+          li:li,si:si,
+          x0:wordBox(sg[0]).x0,
+          tx:tw.length?wordBox(tw[0]).x0:wordBox(sg[0]).x1,
+          y:Math.min.apply(null,yb.map(function(w){return wordBox(w).y0})),
+          y1:Math.max.apply(null,yb.map(function(w){return wordBox(w).y1})),
+          num:isNum?parseInt(first.replace(/\D/g,''),10):null,
+          label:isLabelText(sg.map(function(w){return w.text}).join(' '),bullet),
+          conf:tw.length?tw.reduce(function(a,w){return a+(w.confidence||0)},0)/tw.length:0,
+          tailConf:tw.length?(tw[tw.length-1].confidence||0):0,
+          text:tw.map(function(w){return w.text}).join(' ')
+        });
+      });
     });
-    var cells=[];rows.forEach(function(r){r.forEach(function(c){cells.push(c)})});
-    var avgWords=cells.length?cells.reduce(function(a,c){
-      return a+(c.text?c.text.split(' ').length:0)},0)/cells.length:0;
-    if(!(numbered>=3||(splitRows>=2&&avgWords>=2)))return null;
-    // 有編號就剷走第一個編號之前嘅標題行（例如 "Useful languages / phrases"）
-    if(numbered>=3){
-      while(rows.length&&!rows[0].some(function(c){return c.num}))rows.shift();
+    if(!cells.length)return null;
+
+    /* 分欄：用「文字起點」分群，唔用格仔起點。編號同文字之間可能隔成個
+       「No.」欄咁遠（表格版），用格仔起點會將成格歸咗落編號欄（壓力測試撞到）；
+       而編號讀漏咗嘅格，文字起點亦同其他格一致。 */
+    cells.forEach(function(c){c.x0n=c.x0;c.x0=c.tx});
+    var xs=cells.map(function(c){return c.x0}).sort(function(a,b){return a-b});
+    var groups=[[xs[0]]];
+    for(var i=1;i<xs.length;i++){
+      if(xs[i]-xs[i-1]>pageW*0.12)groups.push([]);
+      groups[groups.length-1].push(xs[i]);
     }
-    /* 按 x 位置分欄，唔係按「呢行第幾段」—— OCR 有時將右欄某格
-       （例如「10. Without a second thought,」）讀成獨立一行，
-       按段數分嘅話佢會走咗落左欄，排喺 5 同 6 中間。 */
-    starts.sort(function(a,b){return a-b});
-    var bounds=[];
-    starts.forEach(function(x){
-      if(!bounds.length||x-bounds[bounds.length-1]>pageW*0.08)bounds.push(x);
+    var centers=groups.map(function(g){return g.reduce(function(a,b){return a+b},0)/g.length});
+    cells.forEach(function(c){
+      var best=0;
+      centers.forEach(function(cx,k){if(Math.abs(c.x0-cx)<Math.abs(c.x0-centers[best]))best=k});
+      c.col=best;
     });
-    var tol=pageW*0.05;
-    var cols=[];
-    rows.forEach(function(r){r.forEach(function(c,i){
-      var k=i;
-      if(c.x0!==null&&bounds.length){
-        k=0; bounds.forEach(function(bx){if(c.x0>=bx-tol)k++});
+    /* 假分欄：OCR 將「had a」讀成「hada」、框位又計短咗，令同一格中間出現
+       一個「大空位」，拆咗做兩格。真嘅欄起點會喺好多行重複出現；成個群得一格、
+       又冇編號嘅，就駁返落同一行左邊嗰格（盲測撞到）。 */
+    var gsize={};cells.forEach(function(c){gsize[c.col]=(gsize[c.col]||0)+1});
+    cells=cells.filter(function(c){
+      if(gsize[c.col]!==1||c.num!==null||c.si===0)return true;
+      if(c.conf<45)return false;        // 孤零零又低分 = 雜字（螢光筆邊讀出嚟嘅「a」），直接剷
+      var left=cells.filter(function(o){return o.li===c.li&&o.si===c.si-1})[0];
+      if(!left)return true;
+      left.text=(left.text+' '+c.text).trim(); left.y1=Math.max(left.y1,c.y1);
+      left.tailConf=c.tailConf;
+      return false;
+    });
+
+    /* 中文意思欄：eng 模式讀中文會吐亂碼（「BAR」「fal A」），但信心分數低。
+       成欄平均低過 65 就成欄剷走。真嘅英文欄平均通常 90 以上；
+       手機壓縮過嘅中文欄實測平均 51，所以 50 唔夠。 */
+    if(centers.length>1){
+      var bad={};
+      centers.forEach(function(_,k){
+        var cc=cells.filter(function(c){return c.col===k&&c.text});
+        if(cc.length&&cc.reduce(function(a,c){return a+c.conf},0)/cc.length<65)bad[k]=1;
+        /* 平均分唔夠低都可以係亂碼欄（盲測：BR(75)、SBE(38)、we(72)）：
+           一半以上嘅格係低分（<60）或者全大楷，就當中文意思欄成欄剷。 */
+        var junk=cc.filter(function(c){
+          var L=c.text.replace(/[^A-Za-z]/g,'');
+          return c.conf<60||(L.length>=2&&L===L.toUpperCase());
+        }).length;
+        if(cc.length>=3&&junk/cc.length>=0.5)bad[k]=1;
+      });
+      if(Object.keys(bad).length<centers.length)cells=cells.filter(function(c){return !bad[c.col]});
+    }
+    var numbered=cells.filter(function(c){return c.num!==null}).length;
+    var multiCol=groups.filter(function(g){return g.length>=2}).length>=2;
+    var withText=cells.filter(function(c){return c.text});
+    var avgWords=withText.length?withText.reduce(function(a,c){return a+c.text.split(' ').length},0)/withText.length:0;
+    /* 多欄但每格一個字（冇編號嘅單字表）都要行呢度：逐行讀嘅舊邏輯會將
+       同一行左右兩格黐埋（「happy sleepy」）。中文意思欄已經喺上面按信心剷走。 */
+    if(!(numbered>=3||multiCol))return null;
+
+    // 有編號：剷走第一個編號以上嘅標題／指示（例如 "Useful languages / phrases"）
+    /* ⚠️ 只喺最頂嗰個編號係 1 或 2 先剷。相朦嘅時候 1–9 嘅編號可能全部讀漏，
+       最頂嘅編號變咗「10.」—— 照剷就會連前面九個詞組一齊剷走（壓力測試撞到）。
+       寧願留低一行標題俾家長自己刪，都唔好靜靜哋少咗九個字。 */
+    if(numbered>=3){
+      /* 用「最細嗰個編號」嚟判斷，唔係「最高嗰個」：相影斜少少，
+         右欄嘅「6.」可能高過左欄嘅「1.」。 */
+      /* 只計有內容嘅編號格：「English Dictation (3)」拆出嚟嘅「(3)」冇字，唔係題目。 */
+      var numCells=cells.filter(function(c){return c.num!==null&&c.text}).sort(function(a,b){return a.y-b.y});
+      /* 編號 0 唔計（「10.」朦咗會讀成「0.」）；而且「1.」一定要喺頭一行
+         （最高嗰幾格之內，幾多欄就睇幾多格），唔係就唔剷 —— 寧願留標題。 */
+      var pos=numCells.filter(function(c){return c.num>=1});
+      var minCell=pos.length?pos.reduce(function(m,c){return c.num<m.num?c:m}):{num:99};
+      if(numCells.indexOf(minCell)>=centers.length)minCell={num:99};
+      /* 以「1.」嗰格做界：佢以上成行都係標題。唔用「最高嗰個編號」——
+         「English Dictation (3)」入面個 (3) 都會被認做編號（壓力測試撞到）。 */
+      if(minCell.num<=2){
+        /* 界線用「最高嗰個有字編號格」，唔係「1.」本身：
+           盲測「1」被讀成「4」，最細變咗「2」，以佢做界會連第一題一齊剷。 */
+        var topY=numCells[0].y;
+        cells=cells.filter(function(c){return c.y1>topY-medH*0.3});
       }
-      (cols[k]=cols[k]||[]).push(c.text);
-    })});
-    var out=[];
-    cols.forEach(function(col){col.forEach(function(t){
-      t=t.replace(/[^A-Za-z0-9 '\u2019\-\.,!\?;:"]/g,'').replace(/\s+/g,' ').trim();
-      if(t.replace(/[^A-Za-z]/g,'').length>=2)out.push(t);
-    })});
+    }
+
+    cells=cells.filter(function(c){return !c.label});
+    /* 冇編號、得一個字、信心 <60 嘅格 = 相入面嘅零碎雜字（盲測：「ites,」）。 */
+    cells=cells.filter(function(c){
+      return !(c.num===null&&c.text&&c.text.indexOf(' ')<0&&c.conf<45);
+    });
+    /* 全大楷亂碼（「WER」「BER」）：成版有正常大細楷先剷，全大楷印嘅工作紙唔掂。 */
+    var allTok=[];cells.forEach(function(c){if(c.text)allTok=allTok.concat(c.text.split(' '))});
+    var mixed=allTok.some(function(t){return /[a-z]/.test(t)});
+    if(mixed)cells.forEach(function(c){
+      c.text=c.text.split(' ').filter(function(t){
+        return !(t.replace(/[^A-Za-z]/g,'').length>=2&&t===t.toUpperCase());
+      }).join(' ');
+    });
+    // 一格兩行：續行駁返上去
+    var kept=[];
+    centers.forEach(function(_,k){
+      var col=cells.filter(function(c){return c.col===k}).sort(function(a,b){return a.y-b.y});
+      var prev=null;
+      col.forEach(function(c){
+        /* 只喺有編號嘅版面先駁：冇編號就分唔到「續行」定「下一題」，
+           盲測撞到中文亂碼框好高，拉高字高中位數，令上下兩個單字被駁埋。 */
+        if(numbered>=3&&prev&&c.num===null&&c.text&&(c.y-prev.y1)<medH*1.2&&Math.abs(c.x0-prev.tx)<pageW*0.03){
+          prev.text=(prev.text+' '+c.text).trim(); prev.y1=c.y1; return;
+        }
+        kept.push(c); prev=c;
+      });
+    });
+    kept=kept.filter(function(c){return c.text.replace(/[^A-Za-z]/g,'').length>=2});
+    if(kept.length<2)return null;
+
+    // 次序：逐欄讀 vs 逐行讀，揀令編號最連續嗰個
+    /* 行號 = 喺自己嗰欄排第幾。唔用 y 座標分行：相影斜咗兩度，
+       右欄會高過左欄一截，用 y 分會將右欄歸錯去上一行。 */
+    /* 用行距分行：同一欄上下兩格嘅 y 差嘅中位數 = 行距；y 相差少過半個行距
+       就當同一行。咁樣斜咗兩度（左右欄差廿幾 px）都唔會分錯行，
+       而某一格讀漏咗亦唔會令成欄行號錯位（「排第幾」嘅做法會）。 */
+    var diffs=[];
+    centers.forEach(function(_,k){
+      var ys=kept.filter(function(c){return c.col===k}).map(function(c){return c.y}).sort(function(a,b){return a-b});
+      for(var j=1;j<ys.length;j++)if(ys[j]-ys[j-1]>medH*0.5)diffs.push(ys[j]-ys[j-1]);
+    });
+    var pitch=median(diffs)||medH*2;
+    var row=-1,rowY=-1e9;
+    kept.slice().sort(function(a,b){return a.y-b.y}).forEach(function(c){
+      if(c.y-rowY>pitch*0.5){row++;rowY=c.y}
+      c.row=row;
+    });
+    function seqScore(arr){
+      var n=0;
+      for(var i=1;i<arr.length;i++)if(arr[i].num!==null&&arr[i-1].num!==null&&arr[i].num===arr[i-1].num+1)n++;
+      return n;
+    }
+    var colMajor=kept.slice().sort(function(a,b){return a.col-b.col||a.y-b.y});
+    var rowMajor=kept.slice().sort(function(a,b){return a.row-b.row||a.col-b.col});
+    var order=seqScore(rowMajor)>seqScore(colMajor)?rowMajor:colMajor;
+
+    var out=order.map(function(c){
+      /* 詞組唔會以 a／an 收尾：尾段低信心嘅 a 係螢光筆／陰影讀出嚟嘅假字。 */
+      c.text=c.text.replace(/\s+(a|an)$/,function(m){return c.tailConf<60?'':m});
+      return c.text.replace(/[^A-Za-z0-9 '’\-\.,!\?;:"]/g,'').replace(/\s+/g,' ').trim();
+    }).filter(function(t){return t.replace(/[^A-Za-z]/g,'').length>=2});
     return out.length>=2?out:null;
   }
 
   function cleanOcr(txt){
-    var lines=txt.split(/\n+/).map(function(l){return l.trim()}).filter(Boolean);
+    var lines=txt.split(/\n+/).map(function(l){return l.trim()}).filter(Boolean)
+      .filter(function(l){
+        var f=l.split(/\s+/)[0]||'';
+        return !isLabelText(LETTER_BULLET.test(f)?l.slice(f.length):l,LETTER_BULLET.test(f));
+      });
     if(looksLikeWordlist(lines))return {mode:'words',lines:extractWords(lines)};
     return {mode:'para',lines:cleanParagraph(lines)};
   }
 
-  function runOcr(file){
-    ocrSay('準備緊…<div class="ocrbar"><i id="ocrBarI"></i></div>');
-    loadTesseract().then(function(){
-      ocrSay('認緊字…第一次要落載工具，可能等 10-30 秒。'+
-             '<div class="ocrbar"><i id="ocrBarI"></i></div>');
-      /* ⚠️ 唔好再退返去用原相。縮唔到即係瀏覽器解唔到呢個檔，
-         掟原檔俾 Tesseract 一樣解唔到，只會由「快啲失敗」變成
-         「等三十秒之後失敗」。直接掟 'img'，出一句講得明嘅訊息。 */
-      return shrinkImage(file).catch(function(e){
-        console.warn('縮圖失敗',e);
-        track('ocr_shrink_fail');
-        throw new Error('img');
+  /* ==================================================================
+     Google Cloud Vision（2026-10-01 加入，Tesseract 留做後備）
+     ------------------------------------------------------------------
+     點解：234 張壓力測試入面，排序已經全對，剩低嘅錯全部係 Tesseract
+     讀錯字（「had a」→「hada」、「I」→「|」、螢光筆下面讀唔到、①②③ 認唔到）。
+     呢啲排序邏輯救唔到，要換認字引擎。
+     做法：/api/ocr 將相轉交 Vision，前端將 Vision 嘅結果轉做同 Tesseract
+     一模一樣嘅 {lines:[{words:[{text,confidence,bbox}]}]}，之後嘅分欄、
+     排序、剷標題全部行返同一套（已經測試過嘅）邏輯。
+     Vision 出錯（冇 key、配額用完、斷網、逾時）就自動跌返 Tesseract。 */
+  var CIRCLED=/^[①-⑳]$/;              // ①–⑳
+  function visionToData(full){
+    if(!full)return {lines:[],text:''};
+    var lines=[];
+    (full.pages||[]).forEach(function(pg){(pg.blocks||[]).forEach(function(bl){
+      (bl.paragraphs||[]).forEach(function(pa){
+        var cur=[],attach=false;
+        (pa.words||[]).forEach(function(w){
+          var syms=w.symbols||[];
+          var text=syms.map(function(x){return x.text||''}).join('');
+          if(!text)return;
+          var vs=(w.boundingBox&&w.boundingBox.vertices)||[];
+          var xs=vs.map(function(v){return v.x||0}),ys=vs.map(function(v){return v.y||0});
+          var bb={x0:Math.min.apply(null,xs),x1:Math.max.apply(null,xs),
+                  y0:Math.min.apply(null,ys),y1:Math.max.apply(null,ys)};
+          var circ=CIRCLED.test(text);
+          if(circ)text=(text.charCodeAt(0)-0x245F)+'.';          // ① → "1."
+          var conf=typeof w.confidence==='number'?w.confidence*100:90;
+          var last=syms[syms.length-1];
+          var br=last&&last.property&&last.property.detectedBreak&&last.property.detectedBreak.type;
+          /* Vision 將標點拆做獨立一個「字」：「1」「.」、「open」「-」「mouthed」、
+             「thought」「,」。前一個字冇 break 即係同呢個字黐埋，駁返做一個，
+             否則「1.」認唔到係編號，「open-mouthed」會變三隻字。 */
+          if(attach&&!circ&&cur.length){
+            var p=cur[cur.length-1];
+            p.text+=text;
+            p.bbox={x0:Math.min(p.bbox.x0,bb.x0),x1:Math.max(p.bbox.x1,bb.x1),
+                    y0:Math.min(p.bbox.y0,bb.y0),y1:Math.max(p.bbox.y1,bb.y1)};
+            p.confidence=Math.min(p.confidence,conf);
+          }else cur.push({text:text,confidence:conf,bbox:bb});
+          attach=!br&&!circ;
+          if(br==='EOL_SURE_SPACE'||br==='LINE_BREAK'||br==='HYPHEN'){
+            lines.push({words:cur});cur=[];attach=false;
+          }
+        });
+        if(cur.length)lines.push({words:cur});
       });
-    }).then(function(src){
-      /* blocks:true 先攞到逐字 confidence（見 textByConfidence）。
-         唔開嘅話 r.data 只有 text，個過濾會自動跌返舊行為。 */
-      return Tesseract.recognize(src,'eng',{
+    })});
+    return {lines:lines,text:full.text||''};
+  }
+  function visionOcr(canvas){
+    if(!window.fetch)return Promise.reject(new Error('nofetch'));
+    var b64;
+    try{b64=canvas.toDataURL('image/jpeg',0.85).split(',')[1]}
+    catch(e){return Promise.reject(new Error('encode'))}
+    var ctrl=window.AbortController?new AbortController():null;
+    var timer=setTimeout(function(){if(ctrl)ctrl.abort()},20000);
+    return fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},
+                             body:JSON.stringify({img:b64}),signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){
+        clearTimeout(timer);
+        if(!r.ok)throw new Error('http'+r.status);
+        return r.json();
+      }).then(function(j){
+        if(!j||!('full' in j))throw new Error('shape');
+        return visionToData(j.full);           // 相入面真係冇字：交返空結果，唔好再試 Tesseract
+      },function(e){clearTimeout(timer);throw e});
+  }
+  function tesseractOcr(canvas){
+    return loadTesseract().then(function(){
+      ocrSay('改用後備方法認字…第一次要落載工具，可能等 10-30 秒。'+
+             '<div class="ocrbar"><i id="ocrBarI"></i></div>');
+      /* blocks:true 先攞到逐字 confidence（見 textByConfidence）。 */
+      return Tesseract.recognize(canvas,'eng',{
         logger:function(m){
           if(m.status==='recognizing text'){
             var b=$('ocrBarI');
@@ -3758,12 +4040,40 @@ function tryNextImg(img){
           }
         }
       },{blocks:true,text:true});
-    }).then(function(r){
-      var d=(r&&r.data)||{};
+    }).then(function(r){return (r&&r.data)||{}});
+  }
+
+  function runOcr(file){
+    ocrSay('認緊字…<div class="ocrbar"><i id="ocrBarI" style="width:35%"></i></div>');
+    var engine='vision';
+    /* ⚠️ 唔好退返去用原相：縮唔到即係瀏覽器解唔到呢個檔，
+       交俾邊個引擎都一樣失敗。直接掟 'img'，出一句講得明嘅訊息。 */
+    shrinkImage(file).catch(function(e){
+      console.warn('縮圖失敗',e);
+      track('ocr_shrink_fail');
+      throw new Error('img');
+    }).then(function(canvas){
+      return visionOcr(canvas).catch(function(e){
+        track('ocr_vision_fail',((e&&e.message)||'').slice(0,30));
+        engine='tess';
+        return tesseractOcr(canvas);
+      });
+    }).then(function(d){
+      track('ocr_engine',engine);
       var filtered=textByConfidence(d);
       /* 攞唔到逐字資料（舊版 tesseract.js、或者 blocks flag 冇生效）
          就跌返 data.text，唔可以因為新過濾而變成乜都認唔到。 */
       track('ocr_conf',filtered===null?'raw':'filtered');
+      /* 擁有者除錯：網址加 #ocrdebug 再影相，會彈出 Tesseract 喺部手機上面
+         實際讀到嘅每個字同信心值。用嚟分清楚係「認唔到字」定「排錯／濾錯」。 */
+      if(location.hash==='#ocrdebug'){
+        try{
+          alert('['+engine+']\n'+ocrLines(d).map(function(l){
+            return (l.words||[]).map(function(w){
+              return w.text+'('+Math.round(w.confidence)+')'}).join(' ');
+          }).join('\n')||'（冇逐字資料）');
+        }catch(e){}
+      }
       var items=null;
       try{items=ocrItems(d)}catch(e){items=null}
       var res=items?{mode:'items',lines:items}

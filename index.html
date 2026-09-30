@@ -421,6 +421,12 @@
   .listcount{margin-top:6px;font-size:.76rem;color:var(--ink-soft)}
   .listcount b{color:var(--board-green)}
   .listcount.full b{color:var(--pen-red)}
+  /* 刪除要撳兩下：第一下變紅色「確定刪除？」，4 秒內再撳先刪。
+     唔用 confirm() —— WhatsApp／FB 內置瀏覽器會靜靜封咗佢，當撳咗取消。 */
+  #btnDel.armed{background:var(--pen-red);color:#fff;border-color:var(--pen-red)}
+  .listmsg{margin-top:6px;font-size:.8rem;font-weight:700;min-height:0}
+  .listmsg.ok{color:var(--board-green)}
+  .listmsg.err{color:var(--pen-red)}
   /* 聲音對比 */
   .ab{margin:16px 0 14px;padding:13px;border-radius:12px;
       background:#E9F3EC;border:1px solid #cfe2d6}
@@ -600,8 +606,10 @@ I like fruit."></textarea>
       <div class="saverow">
         <select id="savedList"><option value="">— 揀返之前儲低嘅詞表 —</option></select>
         <button class="secondary" id="btnLoad">載入</button>
+        <button class="secondary" id="btnDel" aria-label="刪除揀咗嘅詞表">🗑</button>
       </div>
       <div class="listcount" id="listCount"></div>
+      <div class="listmsg" id="listMsg"></div>
 
     </div>
 
@@ -3064,9 +3072,48 @@ function tryNextImg(img){
     $('wordInput').value=o[name].join('\n');
     $('listName').value=name;
   };
-  /* 2026-09-27 剷走「刪除」掣。
-     ⚠️ 後果（刻意接受）：免費版儲滿 3 張之後唔可以騰位，只可以用同一個名
-        覆蓋舊嗰張（canSaveNew 容許覆蓋）；Plus 用家嘅清單亦只會越來越長。 */
+  /* 2026-09-30 加返「刪除」掣（09-27 曾經剷走，想逼免費用家儲滿就買 Plus）。
+     收返嘅原因：一位 Plus 付費家長（用另一個電話號碼）WhatsApp 問點刪 ——
+     小朋友每次默書都儲一張新表（「第一次默書」「第二次默書」…），
+     清單長到用唔到。Plus 無限儲存但冇得刪，等於付咗錢反而最難用。撞 3 張上限嘅機得 7 部，
+     呢個上限本身從來唔係買嘅理由，唔值得用信任去換。
+     免費同 Plus 都刪得。 */
+  /* ⚠️ 2026-09-30 修：第一版用 confirm()，但 WhatsApp／FB／IG 內置瀏覽器
+     同 app 預覽畫面會靜靜封咗 confirm()，即刻當「取消」—— 撳完完全冇反應。
+     改做撳兩下確認，全部喺頁面入面顯示，唔靠任何彈出視窗。 */
+  var delArmed='',delTimer=null;
+  function listSay(t,cls){
+    var m=$('listMsg'); if(!m)return;
+    m.className='listmsg'+(cls?' '+cls:''); m.textContent=t||'';
+  }
+  function disarmDel(){
+    delArmed=''; if(delTimer){clearTimeout(delTimer);delTimer=null}
+    var b=$('btnDel'); b.classList.remove('armed'); b.textContent='🗑';
+  }
+  $('savedList').addEventListener('change',function(){disarmDel();listSay('')});
+  $('btnDel').onclick=function(){
+    var name=$('savedList').value;
+    if(!name){disarmDel();listSay('請先喺左邊揀一張想刪除嘅詞表','err');return}
+    if(delArmed!==name){
+      disarmDel(); delArmed=name;
+      var b=$('btnDel'); b.classList.add('armed'); b.textContent='確定刪除？';
+      listSay('再撳一下就刪除「'+name+'」，刪咗就搵唔返','err');
+      delTimer=setTimeout(function(){disarmDel();listSay('')},4000);
+      return;
+    }
+    disarmDel();
+    var o=readLists();
+    delete o[name];
+    if(writeLists(o)){
+      track('list_delete',String(Object.keys(o).length));
+      if($('listName').value===name)$('listName').value='';
+      $('savedList').value='';
+      refreshSaved();
+      listSay('已刪除「'+name+'」','ok');
+    }else{
+      listSay('刪除唔到，可能係無痕模式或者儲存被封','err');
+    }
+  };
   refreshSaved();
 
   if(isInAppBrowser()){var w=$('iabWarn');if(w)w.classList.remove('hidden')}
@@ -3586,6 +3633,101 @@ function tryNextImg(img){
     return out.length?out.join('\n'):null;
   }
 
+  /* ==================================================================
+     表格／編號清單（2026-10-01 新增）
+     ------------------------------------------------------------------
+     真實個案：Plus 家長影咗一張「Useful languages / phrases」工作紙 ——
+     兩欄表格、每格一個編號詞組（1–5 左欄、6–10 右欄）。舊邏輯逐行讀，
+     每行左右兩格黐埋一句（"looked at her open-mouthed the noise gave him
+     a shock"），又因為每行字多而當咗「短文」，編號亦被剷走。家長結果
+     放棄影相、叫小朋友自己手打 —— 即係付費功能喺最常見嘅工作紙上面用唔到。
+
+     做法：用每個字嘅位置（bbox）搵欄與欄之間嘅大空位，再用「1.」「6.」
+     呢類編號做分隔，將每格拆返做一行詞組。輸出次序：左欄晒先到右欄
+     （1–5 再 6–10），同工作紙讀法一致。
+     只喺認到結構先用（≥3 個編號，或 ≥2 行有明顯分欄而且每格平均 ≥2 個字），
+     否則回傳 null，行返舊嘅詞語表／短文邏輯 —— 中英對照詞語表（每格一個字）
+     唔會誤入呢條路。 */
+  var NUM_TOKEN=/^[\(\[]?\d{1,2}[.,:)\]]$/;
+  function wordBox(w){
+    var b=w&&w.bbox; if(!b)return null;
+    if(typeof b.x0==='number')return {x0:b.x0,x1:b.x1};
+    return null;
+  }
+  function ocrItems(d){
+    var lines=ocrLines(d); if(!lines.length)return null;
+    var gaps=[],pageW=0;
+    lines.forEach(function(l){
+      var ws=l.words||[];
+      for(var i=0;i<ws.length;i++){
+        var b=wordBox(ws[i]); if(!b)continue;
+        if(b.x1>pageW)pageW=b.x1;
+        var pb=i?wordBox(ws[i-1]):null;
+        if(pb)gaps.push(b.x0-pb.x1);
+      }
+    });
+    gaps.sort(function(a,b){return a-b});
+    var medGap=gaps.length?gaps[Math.floor(gaps.length/2)]:0;
+    var colGap=Math.max(medGap*3,pageW*0.03,1);
+    var rows=[],numbered=0,splitRows=0,starts=[];
+    lines.forEach(function(l){
+      var ws=(l.words||[]).filter(function(w){
+        return (w.text||'').replace(/[|!\[\]{}_—–-]/g,'').trim()!=='';   // 表格線
+      });
+      var segs=[],cur=[];
+      ws.forEach(function(w,i){
+        var t=(w.text||'').trim();
+        var b=wordBox(w),pb=i?wordBox(ws[i-1]):null;
+        var bigGap=b&&pb&&(b.x0-pb.x1)>colGap;
+        if(cur.length&&(bigGap||NUM_TOKEN.test(t))){segs.push(cur);cur=[]}
+        cur.push(w);
+      });
+      if(cur.length)segs.push(cur);
+      if(segs.length>1)splitRows++;
+      rows.push(segs.map(function(sg,si){
+        var num=NUM_TOKEN.test((sg[0].text||'').trim());
+        var fb=wordBox(sg[0]);
+        if(si>0&&fb)starts.push(fb.x0);
+        if(num)numbered++;
+        var words=(num?sg.slice(1):sg).filter(function(w){
+          return typeof w.confidence==='number'&&w.confidence>=OCR_MIN_CONF&&ocrPlausible(w.text);
+        }).map(function(w){return w.text});
+        return {num:num,x0:fb?fb.x0:null,text:words.join(' ').replace(/\s+/g,' ').trim()};
+      }));
+    });
+    var cells=[];rows.forEach(function(r){r.forEach(function(c){cells.push(c)})});
+    var avgWords=cells.length?cells.reduce(function(a,c){
+      return a+(c.text?c.text.split(' ').length:0)},0)/cells.length:0;
+    if(!(numbered>=3||(splitRows>=2&&avgWords>=2)))return null;
+    // 有編號就剷走第一個編號之前嘅標題行（例如 "Useful languages / phrases"）
+    if(numbered>=3){
+      while(rows.length&&!rows[0].some(function(c){return c.num}))rows.shift();
+    }
+    /* 按 x 位置分欄，唔係按「呢行第幾段」—— OCR 有時將右欄某格
+       （例如「10. Without a second thought,」）讀成獨立一行，
+       按段數分嘅話佢會走咗落左欄，排喺 5 同 6 中間。 */
+    starts.sort(function(a,b){return a-b});
+    var bounds=[];
+    starts.forEach(function(x){
+      if(!bounds.length||x-bounds[bounds.length-1]>pageW*0.08)bounds.push(x);
+    });
+    var tol=pageW*0.05;
+    var cols=[];
+    rows.forEach(function(r){r.forEach(function(c,i){
+      var k=i;
+      if(c.x0!==null&&bounds.length){
+        k=0; bounds.forEach(function(bx){if(c.x0>=bx-tol)k++});
+      }
+      (cols[k]=cols[k]||[]).push(c.text);
+    })});
+    var out=[];
+    cols.forEach(function(col){col.forEach(function(t){
+      t=t.replace(/[^A-Za-z0-9 '\u2019\-\.,!\?;:"]/g,'').replace(/\s+/g,' ').trim();
+      if(t.replace(/[^A-Za-z]/g,'').length>=2)out.push(t);
+    })});
+    return out.length>=2?out:null;
+  }
+
   function cleanOcr(txt){
     var lines=txt.split(/\n+/).map(function(l){return l.trim()}).filter(Boolean);
     if(looksLikeWordlist(lines))return {mode:'words',lines:extractWords(lines)};
@@ -3622,7 +3764,10 @@ function tryNextImg(img){
       /* 攞唔到逐字資料（舊版 tesseract.js、或者 blocks flag 冇生效）
          就跌返 data.text，唔可以因為新過濾而變成乜都認唔到。 */
       track('ocr_conf',filtered===null?'raw':'filtered');
-      var res=cleanOcr(filtered!==null?filtered:(d.text||''));
+      var items=null;
+      try{items=ocrItems(d)}catch(e){items=null}
+      var res=items?{mode:'items',lines:items}
+                   :cleanOcr(filtered!==null?filtered:(d.text||''));
       var lines=res.lines;
       if(!lines.length){
         track('ocr_empty');
@@ -3639,7 +3784,10 @@ function tryNextImg(img){
       trackSrc('ocr');
       closeOcrModal();
       $('wordInput').scrollIntoView({behavior:'smooth',block:'center'});
-      alert(res.mode==='words'
+      alert(res.mode==='items'
+        ? '認到 '+lines.length+' 個詞組，已經按編號排好，一行一個。\n\n'+
+          '請核對一次先開始 —— OCR 可能會認錯字，喺個框度直接改就得。'
+        : res.mode==='words'
         ? '認到 '+lines.length+' 個英文字，中文同詞性標記已經自動剷走。\n\n'+
           '請核對一次先開始 —— OCR 可能會認錯字，喺個框度直接改就得。'
         : '入咗 '+lines.length+' 行短文。\n\n'+

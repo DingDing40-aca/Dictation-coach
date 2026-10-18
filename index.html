@@ -320,6 +320,22 @@
     background:#25D366;color:#fff;box-shadow:0 4px 0 #1B9E4B;
     transition:transform .08s ease, box-shadow .08s ease}
   .optin-row.single .wa-btn:active{transform:scale(.97);box-shadow:0 1px 0 #1B9E4B}
+  /* ---- 分享俾同班家長（2026-10-18）---- */
+  .sharein{background:#EAF2ED;border:1.5px solid var(--board-green);border-radius:14px;
+           padding:15px 16px;margin:0 0 14px}
+  .sharein-h{font-weight:800;font-size:1rem;margin-bottom:5px}
+  .sharein-p{font-size:.87rem;color:#3B4A63;line-height:1.6;margin-bottom:12px}
+  .sharein .primary{display:block;width:100%}
+  .sharein-s{font-size:.76rem;color:var(--ink-soft);margin-top:9px}
+  .sharebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+            gap:0 10px;margin-top:12px;padding-top:4px;border-top:1px dashed var(--line)}
+  .sharebar-wa{display:inline-block;padding:11px 0;font-size:.92rem;font-weight:700;
+               color:var(--board-green);text-decoration:none}
+  .sharebar .ghost{padding:11px 4px;font-size:.82rem;color:var(--ink-muted)}
+  .sharebar .optin-msg{flex-basis:100%;margin:0 0 6px;word-break:break-all}
+  .sharebar .optin-msg:empty{display:none}
+  .sharetip{margin-top:14px;font-size:.8rem;color:var(--ink-soft);line-height:1.6;text-align:left}
+  #shareBoxR .optin-msg:empty,#shareBoxP .optin-msg:empty{display:none}
   .sitefoot{margin:26px 4px 0;font-size:.82rem;line-height:1.75;color:var(--ink-muted)}
   .sitefoot p{margin-bottom:3px}
   .sitefoot b{color:var(--ink)}
@@ -576,6 +592,14 @@
 
   <!-- ============ SETUP ============ -->
   <section id="viewSetup">
+    <!-- 收到同班家長分享嘅詞表（網址有 #l=…）先出，見 initShareIn。
+         收到嘅家長唔使打字：詞表已經喺下面個框，撳一下就開始。 -->
+    <div class="sharein hidden" id="shareInBox">
+      <div class="sharein-h">📩 同班家長分享咗今次嘅默書範圍</div>
+      <p class="sharein-p" id="shareInP"></p>
+      <button class="primary" id="shareInGo" type="button">▶ 開始默書</button>
+      <div class="sharein-s">範圍喺下面個框度，有錯可以直接改。</div>
+    </div>
     <div class="plusok" id="plusOkBadge">✅ 貼堂 Plus 已解鎖 · 段落默書同影相入字已開通</div>
     <div class="card">
       <h2><span class="step-dot">1</span>貼上今個星期嘅默書詞表</h2>
@@ -610,6 +634,14 @@ I like fruit."></textarea>
       </div>
       <div class="listcount" id="listCount"></div>
       <div class="listmsg" id="listMsg"></div>
+      <!-- 分享俾同班家長：自己入咗詞表（唔係示範、唔係收返嚟嗰份）先出。
+           刻意做成細字連結：呢一格嘅主角係「開始默書」，唔好搶。
+           結果頁嗰張分享卡先係主力（默完先知份詞表冇錯）。 -->
+      <div class="sharebar hidden" id="shareBarS">
+        <a class="sharebar-wa" id="shareWaS" href="#" target="_blank" rel="noopener">📤 分享俾同班家長</a>
+        <button class="ghost" id="shareCopyS" type="button">複製訊息</button>
+        <div class="optin-msg" id="shareMsgS"></div>
+      </div>
 
     </div>
 
@@ -903,6 +935,18 @@ I like fruit."></textarea>
       <!-- 同單詞結果頁嗰張一模一樣。段落默書用家（para_done 23 次）同
            紙筆模式用家（paper_done 20 次）本身喺 dictation_done 入面already
            完全隱形，如果連邀請都收唔到，就係全 app 最投入嗰批人接觸唔到。 -->
+      <!-- 分享卡（同單詞結果頁 shareBoxR 一樣，見 maybeShowShare）。 -->
+      <div class="optin hidden" id="shareBoxP">
+        <div class="optin-h">📤 同班家長都要默呢段</div>
+        <p class="optin-p" id="sharePP"></p>
+        <div class="optin-row single">
+          <a class="wa-btn" id="shareWaP" href="#" target="_blank" rel="noopener">💬 分享去 WhatsApp 班群</a>
+        </div>
+        <button class="ghost" id="shareCopyP" type="button">複製訊息（用其他 app 分享）</button>
+        <div class="optin-msg" id="shareMsgP"></div>
+        <button class="ghost" id="shareSkipP" type="button">唔使喇</button>
+      </div>
+      <div class="sharetip hidden" id="shareTipP">💡 下次學校派新範圍，你都可以喺貼堂入好之後撳「📤 分享俾同班家長」，幫埋其他家長。</div>
       <div class="optin hidden" id="optinBox2">
         <div class="optin-h">📦 免費英文詞表包</div>
         <p class="optin-p">小一至小六常見英文詞，跟返香港課程排好，貼上去即刻用，唔使自己打字。
@@ -1106,6 +1150,23 @@ I like fruit."></textarea>
         <button class="secondary" id="btnRetryAll">全部再默一次</button>
       </div>
 
+      <!-- 分享俾同班家長（2026-10-18）。只喺自己入嘅詞表默完先出：
+           默完先知份詞表冇錯，唔會將打錯／認錯嘅字傳俾成班。
+           同 WhatsApp 邀請卡互斥（同一版面唔出兩個 CTA），分享優先 ——
+           分享帶嚟新家長，入群只係留住舊家長。每份詞表最多問一次
+           （分享咗或者撳「唔使喇」就唔再問嗰份），跳過三份唔同詞表就唔再問。 -->
+      <div class="optin hidden" id="shareBoxR">
+        <div class="optin-h">📤 同班家長都要默呢份</div>
+        <p class="optin-p" id="sharePR"></p>
+        <div class="optin-row single">
+          <a class="wa-btn" id="shareWaR" href="#" target="_blank" rel="noopener">💬 分享去 WhatsApp 班群</a>
+        </div>
+        <button class="ghost" id="shareCopyR" type="button">複製訊息（用其他 app 分享）</button>
+        <div class="optin-msg" id="shareMsgR"></div>
+        <button class="ghost" id="shareSkipR" type="button">唔使喇</button>
+      </div>
+      <div class="sharetip hidden" id="shareTipR">💡 下次學校派新範圍，你都可以喺貼堂入好之後撳「📤 分享俾同班家長」，幫埋其他家長。</div>
+
       <div class="optin hidden" id="optinBox">
         <div class="optin-h">📦 免費英文詞表包</div>
         <p class="optin-p">小一至小六常見英文詞，跟返香港課程排好，貼上去即刻用，唔使自己打字。
@@ -1217,7 +1278,9 @@ function tryNextImg(img){
         storage，src_paid 會漏數。所以付款 WhatsApp 預填訊息都會帶埋
         來源（見 payWa），以你 WhatsApp 收到嘅為準。
      ================================================================== */
-  var SRC='',SRC_FROM_URL=false;
+  /* SRC_PREV：今次開頁之前記住嘅來源。分享者自己撳返自己條班群 link
+     （?src=cls）嗰陣要還原返佢，唔可以當咗係班群帶嚟嘅新家長（見 initShareIn）。 */
+  var SRC='',SRC_FROM_URL=false,SRC_PREV='';
   function parseSrc(search){
     var raw='';
     try{
@@ -1228,6 +1291,7 @@ function tryNextImg(img){
     return /^[a-z0-9_-]{1,24}$/.test(raw)?raw:'';
   }
   (function(){
+    try{SRC_PREV=localStorage.getItem('dc_src')||''}catch(e){}
     var s=parseSrc(location.search);
     if(s){
       SRC=s;SRC_FROM_URL=true;
@@ -1260,6 +1324,7 @@ function tryNextImg(img){
     window.scrollTo(0,0);
     // 第一次默書完成之後，返到主畫面先問「加到主畫面」（見 a2hsPending）
     if(name==='setup'&&a2hsPending){a2hsPending=false;if(a2hsKind)showA2hs(a2hsKind)}
+    if(name==='setup'){try{refreshShareBar()}catch(e){}}
   }
 
   /* ---------- word list ---------- */
@@ -1712,6 +1777,7 @@ function tryNextImg(img){
   var paperMode=false;
 
   function startPractice(list){
+    clearShareHash();
     paperMode=($('optAnswerMode').value==='paper');
     $('viewPractice').classList.toggle('papermode',paperMode);
     if(paperMode)track('paper_start','word');
@@ -1810,8 +1876,11 @@ function tryNextImg(img){
         }).join('');
       $('btnRetryWrong').style.display='none';
       /* 紙筆模式一樣要出邀請卡。舊版喺度硬收埋咗佢，
-         但紙筆用家啱啱都係做完一次默書，同樣係有成功感嗰一刻。 */
-      showOptinCard('');
+         但紙筆用家啱啱都係做完一次默書，同樣係有成功感嗰一刻。
+         2026-10-18：分享卡優先，同邀請卡互斥（見 maybeShowShare）。 */
+      if(maybeShowShare('R')) $('optinBox').classList.add('hidden');
+      else showOptinCard('');
+      showShareTip('R');
       $('plusBox').classList.add('hidden');
       /* ⚠️ 2026-09-22 修：紙筆模式以前只送 paper_done，唔送 dictation_done，
          所以紙筆完成完全唔入主漏斗。但「作答方式」（打字／紙筆）同
@@ -1849,8 +1918,13 @@ function tryNextImg(img){
        ⚠️ 用新 key dc_wa，唔沿用 dc_optin —— 舊嗰 37 個留過 email 嘅人
           係全批用戶入面最熱嗰批，唔應該因為佢哋留過 email 就見唔到個群組邀請。
        撳「下次先」最多問 3 次（跟返 plusBox／a2hs 同一套 SKIP_MAX），
-       唔係舊版嗰種「skip 一次就永遠消失」—— 舊版嘅結果係 178 個人得 37 個留低。 */
-    var showOptin=showOptinCard('');
+       唔係舊版嗰種「skip 一次就永遠消失」—— 舊版嘅結果係 178 個人得 37 個留低。
+       2026-10-18：自己入嘅詞表就先出分享卡，同邀請卡互斥（見 maybeShowShare）。 */
+    var showShare=maybeShowShare('R');
+    var showOptin=false;
+    if(showShare) $('optinBox').classList.add('hidden');
+    else showOptin=showOptinCard('');
+    showShareTip('R');
 
     /* Plus 提示：只俾「真係用開」嘅人見。
        第一次用嘅家長仲喺度衡量個工具好唔好，嗰陣叫佢俾錢太早；
@@ -1863,7 +1937,7 @@ function tryNextImg(img){
     trackSrc('act');
     if(runs===1)a2hsPending=true;
     $('plusBox').classList.toggle('hidden',
-      !(!showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
+      !(!showShare && !showOptin && !plusHintOff() && runs>=PLUS_HINT_AFTER));
     if(!$('plusBox').classList.contains('hidden')){
       /* 唔好一開口就講價錢同功能規格。家長啱啱默完，佢腦入面嘅問題係
          「下個星期又要再嚟一次」，所以由嗰度入手先。 */
@@ -2044,6 +2118,7 @@ function tryNextImg(img){
     if(!splitSentences($('wordInput').value).length){
       $('wordInput').value=DEMO_PARA;   /* 用返現成嘅示範短文 */
       seeded=true;
+      try{refreshShareBar()}catch(e){}
     }
     var msg=$('plusMsg');
     if(msg){
@@ -2591,6 +2666,7 @@ function tryNextImg(img){
     var raw=$('wordInput').value;
     paraList=splitSentences(raw);
     if(!paraList.length){alert('請先喺上面貼一段英文短文');return}
+    clearShareHash();
     paperMode=($('optAnswerMode').value==='paper');
     $('viewPara').classList.toggle('papermode',paperMode);
     if(paperMode)track('paper_start','para');
@@ -2680,7 +2756,9 @@ function tryNextImg(img){
       });
       $('paraScoreLabel').textContent='對答案';
       document.querySelector('#viewParaResult .legend').classList.add('hidden');
-      showOptinCard('2');
+      if(maybeShowShare('P')) $('optinBox2').classList.add('hidden');
+      else showOptinCard('2');
+      showShareTip('P');
       show('pararesult');
       return;
     }
@@ -2740,8 +2818,15 @@ function tryNextImg(img){
     var plusPrompt=(!plusUnlocked()&&paraLeft()===0);
     /* 試用用完嗰一刻係全個 app 最貴嘅一格。守住「同一版面唔會同時出兩個
        CTA」—— 嗰陣唔好用免費詞表包搶咗 $88 嘅注意力。 */
-    if(plusPrompt) $('optinBox2').classList.add('hidden');
-    else showOptinCard('2');
+    if(plusPrompt){
+      $('optinBox2').classList.add('hidden');
+      $('shareBoxP').classList.add('hidden');      /* 分享卡同樣唔好搶 $88 嗰一格 */
+      $('shareTipP').classList.add('hidden');
+    }else{
+      if(maybeShowShare('P')) $('optinBox2').classList.add('hidden');
+      else showOptinCard('2');
+      showShareTip('P');
+    }
     if(plusPrompt){
       box.insertAdjacentHTML('afterbegin',
         '<div class="paratrial" style="margin-bottom:14px">'+
@@ -2805,12 +2890,26 @@ function tryNextImg(img){
   };
   $('btnPlusBack').onclick=function(){plusShowStep(1)};
 
+  /* 家長成段 WhatsApp 訊息貼入嚟都得（例如「你嘅解鎖碼：TT-ABCD-EFGH，
+     或者撳 https://tiptonghk.com/#unlock=TT-ABCD-EFGH」）。
+     舊版 codeNormalize 會將成段字母撈埋一齊，長度唔啱就判錯碼。
+     而家喺入面逐個位搵「TT + 4 + 4」，搵到第一條校驗啱嘅就用。 */
+  function extractCode(v){
+    var s=String(v||'').toUpperCase(), re=/TT[\s\-‐-―_]*([0-9A-Z]{4})[\s\-‐-―_]*([0-9A-Z]{4})/g, m;
+    while((m=re.exec(s))){
+      var c='TT-'+m[1]+'-'+m[2];
+      if(codeValid(c))return c;
+      re.lastIndex=m.index+1;
+    }
+    return null;
+  }
   $('btnPlusGo').onclick=function(){
     var v=($('plusInput').value||'').trim();
     var msg=$('plusMsg');
     if(!v){msg.className='modal-msg err';msg.textContent='請輸入解鎖碼';return}
-    if(codeValid(v)){
-      applyUnlock(v,'input');
+    var code=codeValid(v)?v:extractCode(v);
+    if(code){
+      applyUnlock(code,code===v?'input':'paste');
     }else{
       track('code_bad');
       msg.className='modal-msg err';
@@ -3033,6 +3132,7 @@ function tryNextImg(img){
     $('wordInput').value=DEMO_WORDS.join('\n');
     $('listName').value='';
     track('demo_click','word');
+    refreshShareBar();
     $('wordInput').scrollIntoView({block:'nearest'});
     /* 「開始默書」喺手機第一屏以下（~1,100px），撳完試用佢會以為冇反應。
        同段落 demo 一樣，直接帶佢去個掣。 */
@@ -3043,11 +3143,254 @@ function tryNextImg(img){
     $('wordInput').value=DEMO_PARA;
     $('listName').value='';
     track('demo_click','para');
+    refreshShareBar();
     $('wordInput').scrollIntoView({block:'nearest'});
     // 直接帶佢去段落默書，唔使佢自己再揾個掣
     var b=$('btnPara');
     if(b)setTimeout(function(){b.scrollIntoView({block:'center',behavior:'smooth'})},120);
   };
+
+  /* ==================================================================
+     分享俾同班家長（2026-10-18 新增）
+     ------------------------------------------------------------------
+     點解：同一班幾十個家長，每星期默同一份範圍。一個家長入好（打字或者影相），
+     撳一下 send 去班群；其他家長撳入去，詞表已經喺個框度，唔使再打字。
+     呢個係貼堂唯一一個天生會自己傳開嘅位。刻意冇獎勵 ——「share 換額度」
+     喺班群會似賣廣告，亦要開 server 記邊個 share 過。
+
+     連結：https://tiptonghk.com/?src=cls#l=<詞表>&r=<分享者裝置ID>
+       · 詞表放喺 # 後面：唔會送去伺服器，唔使 server、唔使資料庫。
+       · ?src=cls 沿用來源追蹤，收到嘅家長之後嘅 src_act／src_para／
+         src_ocr／src_paid 全部自動記做 cls。
+       · r 係分享者嘅匿名裝置 ID（同事件記錄用嗰個一樣），
+         用嚟計「每個分享者帶到幾多個家長」。擺最尾，令條 link 以字母收尾。
+       · 標點（. _ - * ~ ! ' ( )）全部 encode 成 %XX，空格變 +：
+         WhatsApp 認 link 嗰陣會甩走結尾嘅「.」「!」「)」，
+         短文最後個 full stop 會靜靜哋唔見咗，批改就會錯；
+         而「_」「~」「*」喺 WhatsApp 係斜體／刪除線／粗體符號。
+       · 唔放詞表名：家長個名可能有小朋友個名，唔應該 send 去成個班群。
+
+     事件（值入面唔可以有「|」，張表靠「|」拆欄）：
+       share_view   結果頁見到分享卡　　 值：R:w15（單詞 15 個字）／P:p3（段落 3 句）
+       share_click  撳咗分享　　　　　　 值：S-wa:w15／R-wa:…／P-copy:ok…
+       share_skip   撳「唔使喇」　　　　 值：累計跳過幾多份唔同詞表
+       share_open   收到嘅家長開咗 link　值：分享者ID:w15
+       share_go     收到嘅家長撳「開始」 值：words／para
+       share_self   分享者自己開返自己條 link（唔當新家長，來源還原）
+     ================================================================== */
+  var SHARE_SRC='cls';
+  var SHARE_MAX_CHARS=1500;     /* 大約 250 個字，正常一份默書範圍遠低過呢個 */
+  var SHARE_IN=null;            /* 由分享 link 入嚟：{text,r,mode} */
+  var shareBarTimer=null;
+
+  function normList(t){
+    return String(t||'').replace(/\r/g,'').split('\n')
+      .map(function(s){return s.replace(/\s+/g,' ').trim()})
+      .filter(Boolean).join('\n');
+  }
+  /* 段落定詞表：平均每行 ≥4 個字、而且有句號／問號／感嘆號先當段落。
+     詞組表（made a terrible mistake）冇句號，唔會判錯。 */
+  function looksLikeParaText(n){
+    var lines=n.split('\n'),w=0;
+    lines.forEach(function(l){w+=l.split(' ').length});
+    return w/lines.length>=4&&/[.!?]/.test(n);
+  }
+  function listInfo(raw){
+    var n=normList(raw); if(!n)return null;
+    var para=looksLikeParaText(n);
+    return {text:n,mode:para?'para':'words',
+            count:para?splitSentences(n).length:n.split('\n').length};
+  }
+  function infoTag(info){return (info.mode==='para'?'p':'w')+info.count}
+  function isDemoText(n){
+    return n===normList(DEMO_WORDS.join('\n'))||n===normList(DEMO_PARA);
+  }
+  function listHash(n){return sha256Hex(n.toLowerCase()).slice(0,12)}
+  /* 可唔可以分享：要係自己入嘅（唔係示範、唔係收返嚟嗰份未改過）、
+     單詞最少 3 個、唔好長到條 link 爆。 */
+  function shareEligible(){
+    var info=listInfo($('wordInput').value);
+    if(!info||isDemoText(info.text))return null;
+    if(SHARE_IN&&info.text===SHARE_IN.text)return null;
+    if(info.mode==='words'&&info.count<3)return null;
+    if(info.text.length>SHARE_MAX_CHARS)return null;
+    return info;
+  }
+  function shareBase(){
+    var h=(location.hostname||'').toLowerCase();
+    return /(^|\.)tiptonghk\.com$/.test(h)?(location.protocol+'//'+location.host+'/'):'https://tiptonghk.com/';
+  }
+  function shareEncode(s){
+    return encodeURIComponent(s).replace(/%20/g,'+')
+      .replace(/[!'()*._~-]/g,function(c){return '%'+c.charCodeAt(0).toString(16).toUpperCase()});
+  }
+  function shareDecode(s){return decodeURIComponent(String(s).replace(/\+/g,' '))}
+  function shareUrl(info){
+    return shareBase()+'?src='+SHARE_SRC+'#l='+shareEncode(info.text)+'&r='+deviceId();
+  }
+  /* 訊息係用分享嗰位家長把口講：講份範圍、講收到嘅人有咩用，唔講「貼堂幾好」。
+     段落默書係 Plus（每部機試 3 次），所以段落版唔寫「免費」。 */
+  function shareMessage(info,url){
+    if(info.mode==='para'){
+      return '📝 今個星期嘅英文默書段落已經整咗做練習，小朋友撳入去就可以逐句聽住默，'+
+             '連 comma、full stop 都會讀出嚟 👇\n'+url+'\n（唔使註冊／下載）';
+    }
+    return '📝 今個星期嘅英文默書範圍（'+info.count+' 個字）已經整咗做練習，'+
+           '小朋友撳入去就可以自己聽住默，串錯嘅字會再默多次，唔使自己讀 👇\n'+
+           url+'\n（免費，唔使註冊／下載）';
+  }
+  function shareWaHref(info){
+    return 'https://wa.me/?text='+encodeURIComponent(shareMessage(info,shareUrl(info)));
+  }
+  function shareParse(hash){
+    var m=String(hash||'').match(/^#l=([^&]*)(?:&r=([A-Za-z0-9]{1,16}))?/);
+    if(!m)return null;
+    var t;
+    try{t=normList(shareDecode(m[1]))}catch(e){return null}
+    if(!t)return null;
+    return {text:t.slice(0,4000),r:m[2]||''};
+  }
+
+  /* 每份詞表最多問一次：分享咗或者撳「唔使喇」就記低嗰份嘅 hash。 */
+  function shareDone(info){
+    try{return localStorage.getItem('dc_share_done')===listHash(info.text)}catch(e){return false}
+  }
+  function markShared(info){
+    try{localStorage.setItem('dc_share_done',listHash(info.text))}catch(e){}
+  }
+
+  /* 複製：FB／IG 內置瀏覽器成日冇 clipboard API，跌返舊式 execCommand。 */
+  function copyText(t,done){
+    function fallback(){
+      var ok=false;
+      try{
+        var ta=document.createElement('textarea');
+        ta.value=t;ta.setAttribute('readonly','');
+        ta.style.position='fixed';ta.style.top='0';ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();ta.setSelectionRange(0,t.length);
+        ok=document.execCommand('copy');
+        document.body.removeChild(ta);
+      }catch(e){ok=false}
+      done(ok);
+    }
+    try{
+      if(navigator.clipboard&&window.isSecureContext){
+        navigator.clipboard.writeText(t).then(function(){done(true)},fallback);
+        return;
+      }
+    }catch(e){}
+    fallback();
+  }
+
+  /* sfx：S = 設定頁細字連結、R = 單詞結果頁、P = 段落結果頁。
+     寫成一個 function 接三次，唔好 copy 三份（同 wireOptin 一樣嘅理由）。
+     WhatsApp 掣係 <a href>（唔係 window.open），理由同入群掣一樣：
+     內置瀏覽器封得到 window.open，封唔到普通連結。 */
+  function wireShare(sfx){
+    var a=$('shareWa'+sfx),cp=$('shareCopy'+sfx),sk=$('shareSkip'+sfx),msg=$('shareMsg'+sfx);
+    function say(t,cls){if(msg){msg.className='optin-msg'+(cls?' '+cls:'');msg.textContent=t||''}}
+    if(a)a.addEventListener('click',function(e){
+      var info=shareEligible();
+      if(!info){e.preventDefault();return}
+      a.href=shareWaHref(info);          /* 以撳嗰一刻個框入面嘅內容為準 */
+      track('share_click',sfx+'-wa:'+infoTag(info));
+      markShared(info);
+      say('開緊 WhatsApp… 揀返班群就得 ✓','ok');
+    });
+    if(cp)cp.onclick=function(){
+      var info=shareEligible(); if(!info)return;
+      var url=shareUrl(info);
+      copyText(shareMessage(info,url),function(ok){
+        track('share_click',sfx+'-copy:'+(ok?'ok':'fail'));
+        if(ok){markShared(info);say('複製咗 ✓ 貼去班群就得','ok')}
+        else say('複製唔到，請長按下面條連結自己複製：'+url,'err');
+      });
+    };
+    if(sk)sk.onclick=function(){
+      var info=shareEligible();
+      if(info)markShared(info);
+      track('share_skip',bumpSkip('dc_shareskip'));
+      $('shareBox'+sfx).classList.add('hidden');
+    };
+  }
+  wireShare('S');wireShare('R');wireShare('P');
+
+  function refreshShareBar(){
+    var bar=$('shareBarS'); if(!bar)return;
+    var info=shareEligible();
+    bar.classList.toggle('hidden',!info);
+    if(info)$('shareWaS').href=shareWaHref(info);
+    else{var m=$('shareMsgS');if(m)m.textContent=''}
+  }
+  $('wordInput').addEventListener('input',function(){
+    if(shareBarTimer)clearTimeout(shareBarTimer);
+    shareBarTimer=setTimeout(refreshShareBar,300);
+  });
+
+  /* 結果頁分享卡。回傳有冇出，等呼叫方收埋 WhatsApp 邀請卡（同一版面唔出兩個 CTA）。 */
+  function maybeShowShare(sfx){
+    var box=$('shareBox'+sfx); if(!box)return false;
+    var info=shareEligible();
+    var ok=!!(info&&!shareDone(info)&&skipCount('dc_shareskip')<SKIP_MAX);
+    box.classList.toggle('hidden',!ok);
+    if(!ok)return false;
+    $('shareWa'+sfx).href=shareWaHref(info);
+    var m=$('shareMsg'+sfx); if(m){m.className='optin-msg';m.textContent=''}
+    $('shareP'+sfx).textContent=info.mode==='para'
+      ? '撳一下 send 去班群。佢哋撳入去，段落已經入好晒，小朋友即刻可以逐句默，唔使自己再打。'
+      : '撳一下 send 去班群。佢哋撳入去，'+info.count+' 個字已經入好晒，小朋友即刻可以默，唔使再逐個字打。';
+    track('share_view',sfx+':'+infoTag(info));
+    return true;
+  }
+  /* 收到分享嗰位家長默完：輕輕提一句佢下次都可以咁做（唔係掣，唔搶 CTA）。 */
+  function showShareTip(sfx){
+    var t=$('shareTip'+sfx); if(!t)return;
+    var info=listInfo($('wordInput').value);
+    t.classList.toggle('hidden',!(SHARE_IN&&info&&info.text===SHARE_IN.text));
+  }
+
+  /* 收到分享嘅家長：一開頁就將詞表放入個框，頂部出一張卡，一撳開始。
+     ⚠️ 一定要喺 first_open 判斷之後先行（佢會 track，track 會寫 dc_did）。 */
+  function initShareIn(){
+    var s=shareParse(location.hash); if(!s)return;
+    var info=listInfo(s.text); if(!info)return;
+    $('wordInput').value=info.text;
+    $('listName').value='';
+    if(s.r&&s.r===deviceId()){
+      /* 分享者自己撳返自己條 link：唔當新家長，來源還原返之前嗰個。 */
+      SHARE_IN=null;
+      if(SRC_FROM_URL&&SRC===SHARE_SRC){
+        SRC=SRC_PREV;SRC_FROM_URL=false;
+        try{if(SRC_PREV)localStorage.setItem('dc_src',SRC_PREV);else localStorage.removeItem('dc_src')}catch(e){}
+      }
+      $('shareInBox').classList.add('hidden');
+      track('share_self',infoTag(info));
+      return;
+    }
+    SHARE_IN={text:info.text,r:s.r,mode:info.mode};
+    var para=info.mode==='para';
+    $('shareInP').textContent=para
+      ? '已經幫你入好晒（'+info.count+' 句）。撳下面開始：逐句慢慢讀，連標點都會讀出嚟。'
+      : '已經幫你入好晒（'+info.count+' 個字）。撳下面開始：小朋友自己聽、自己默，串錯嘅字會再默多次。';
+    $('shareInGo').textContent=para?'📄 開始段落默書':'▶ 開始默書';
+    $('shareInBox').classList.remove('hidden');
+    track('share_open',(s.r||'-')+':'+infoTag(info));
+  }
+  $('shareInGo').onclick=function(){
+    track('share_go',SHARE_IN?SHARE_IN.mode:'');
+    if(SHARE_IN&&SHARE_IN.mode==='para')$('btnPara').click();
+    else $('btnStart').click();
+  };
+  /* 開始默書之後：收起分享卡，網址剷走 #l=…（重新整理唔會再覆蓋佢改過嘅內容，
+     加到主畫面亦唔會帶住份舊詞表）。開始之前唔剷 —— FB 內置瀏覽器
+     「喺瀏覽器開啟」靠條完整網址，太早剷咗就會冇咗份詞表。 */
+  function clearShareHash(){
+    var b=$('shareInBox'); if(b)b.classList.add('hidden');
+    if(/^#l=/.test(location.hash||'')){
+      try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+    }
+  }
 
   $('btnSave').onclick=function(){
     var words=getWords();
@@ -3078,6 +3421,7 @@ function tryNextImg(img){
     if(!o[name]){alert('搵唔返呢個詞表');refreshSaved();return}
     $('wordInput').value=o[name].join('\n');
     $('listName').value=name;
+    refreshShareBar();
   };
   /* 2026-09-30 加返「刪除」掣（09-27 曾經剷走，想逼免費用家儲滿就買 Plus）。
      收返嘅原因：一位 Plus 付費家長（用另一個電話號碼）WhatsApp 問點刪 ——
@@ -3231,6 +3575,13 @@ function tryNextImg(img){
     if(isNew) track('first_open');
     if(now-last > 30*60*1000) track('app_open');
   })();
+  /* 分享 link（#l=…）：一定要喺 first_open 之後、送 src 之前行 ——
+     分享者自己開返自己條 link 嗰陣，要喺送 src 之前還原來源。 */
+  initShareIn();
+  refreshShareBar();
+  window.addEventListener('hashchange',function(){
+    if(/^#l=/.test(location.hash||'')){initShareIn();refreshShareBar()}
+  });
   /* 來源：一定要喺 first_open 判斷之後先送（見 parseSrc 上面嘅註解）。 */
   if(SRC_FROM_URL) trackSrc('open');
 
@@ -4092,6 +4443,7 @@ function tryNextImg(img){
         return;
       }
       $('wordInput').value=lines.join('\n');
+      refreshShareBar();
       /* 認到字先扣試用次數。認唔到／出錯都扣嘅話，
          家長第一次影歪咗就冇機會再試，直接流失。 */
       if(!plusUnlocked())bumpOcrUsed();
@@ -4178,7 +4530,7 @@ function tryNextImg(img){
          唔係 dc_ocrtrial（估錯過一次）。 */
       ['dc_plus','dc_gvdays','dc_runs','dc_para_runs','dc_ocr_runs',
        'dc_lists','dc_voice','dc_optin','dc_wa','dc_waskip','dc_plushint','dc_a2hs',
-       'dc_lastopen','dc_did','dc_src']
+       'dc_lastopen','dc_did','dc_src','dc_share_done','dc_shareskip']
         .forEach(function(k){ try{localStorage.removeItem(k)}catch(e){} });
       location.hash='';
       location.reload();

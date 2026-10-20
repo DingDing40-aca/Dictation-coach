@@ -1642,7 +1642,9 @@ function tryNextImg(img){
 
   /* 攞一個已經解鎖嘅播放器。重用同一個元素，淨係換 src。
      順帶好處：一個元素播唔到兩段嘢，天然防止兩把聲疊住讀。 */
+  var playerGen=0;          // 每次攞播放器 +1，用嚟認出「過咗期」嘅播放回調
   function getPlayer(){
+    playerGen++;
     if(sharedAudio){
       try{
         sharedAudio.pause();
@@ -1713,21 +1715,50 @@ function tryNextImg(img){
       try{ fetch(u,{cache:'force-cache'}).catch(function(){}) }catch(e){}
     });
   }
+  /* 2026-10-20：J 回報「第一隻字係 Cathy，之後就唔係」。Vercel log 我哋睇唔到，
+     所以由前端自己報：每次開頁第一次 Cathy 失敗，送一條 gv_fail，
+     數值 = 點樣失敗:媒體錯誤碼:HTTP 狀態:域名，例如
+       err:m4:502:tiptonghk.com  → Google 嗰邊出事（配額／帳單／key）
+       err:m4:403:dictation-coa  → 喺唔喺 ALLOWED 名單嘅域名開（api/tts.js 擋咗）
+       play-NotAllowedError:200:… → iOS 手勢限制，音檔本身冇問題
+       to:200:…                   → 4 秒內播唔到，網絡慢
+     每次開頁只送一次，唔會洗版。 */
+  var gvFailSent=false;
+  function gvReportFail(kind,url,a){
+    if(gvFailSent)return; gvFailSent=true;
+    var code=(a&&a.error&&a.error.code)?':m'+a.error.code:'';
+    var host=(location.hostname||'file').replace(/^www\./,'').slice(0,12);
+    function send(st){ track('gv_fail',kind+code+':'+st+':'+host) }
+    try{
+      fetch(url,{cache:'no-store'}).then(function(r){send(r.status)},function(){send('net')});
+    }catch(e){ send('x') }
+  }
   function playGV(text,slow,gv,onFail){
     stopAudio();
     try{speechSynthesis.cancel()}catch(e){}
-    var a=getPlayer();
-    a.src=gvUrl(gvText(text),readRate(text,slow),gv.alias);
+    var a=getPlayer(), my=playerGen;
+    var url=gvUrl(gvText(text),readRate(text,slow),gv.alias);
+    a.src=url;
     curAudio=a;
     var settled=false;
-    function fail(){ if(settled)return; settled=true; curAudio=null; onFail(); }
+    function fail(kind){
+      if(settled)return; settled=true;
+      /* 個播放器已經換咗去播下一段（家長撳得快），呢個舊請求嘅失敗唔關事：
+         唔可以 fallback 讀返舊嗰個字，否則會打斷緊播緊嘅 Cathy。
+         ⚠️ 用計數器，唔好比較 a.src —— 瀏覽器會將 ' 之類重新編碼，
+            shouldn't 呢啲字會對唔上，變成永遠唔 fallback、靜晒。 */
+      if(my!==playerGen)return;
+      curAudio=null;
+      gvReportFail(kind,url,a);
+      onFail();
+    }
     a.onplaying=function(){settled=true;hideNoSound()};
     a.onended=function(){curAudio=null};
-    a.onerror=fail;
-    a.play().catch(fail);
+    a.onerror=function(){fail('err')};
+    a.play().catch(function(e){fail('play-'+((e&&e.name)||'x'))});
     /* 比靜態音檔嗰個 1500ms 寬鬆：第一次要等 Google 合成。
        太短會令第一次永遠跌返矇聲 TTS，家長就永遠聽唔到分別。 */
-    setTimeout(function(){ if(!settled)fail() },4000);
+    setTimeout(function(){ if(!settled)fail('to') },4000);
   }
 
   function speak(text,slow){
@@ -2514,18 +2545,19 @@ function tryNextImg(img){
       stopAudio();
       try{speechSynthesis.cancel()}catch(e){}
       var a=getPlayer();
-      a.src=gvUrl(forSpeech(text),rate,gv.alias);
+      var url=gvUrl(forSpeech(text),rate,gv.alias);
+      a.src=url;
       curAudio=a;
       var settled=false;
-      function fail(){ if(settled)return; settled=true; curAudio=null;
-                       if(run===paraRun)onFail() }
+      function fail(kind){ if(settled)return; settled=true; curAudio=null;
+                           if(run===paraRun){ gvReportFail('p'+kind,url,a); onFail() } }
       a.onplaying=function(){settled=true;hideNoSound();
                              $('paraNoSound').classList.add('hidden')};
       a.onended=function(){ settled=true; curAudio=null;
                             if(run===paraRun&&onDone)onDone() };
-      a.onerror=fail;
-      a.play().catch(fail);
-      setTimeout(function(){ if(!settled)fail() },4000);   // 第一次要等 Google 合成
+      a.onerror=function(){fail('err')};
+      a.play().catch(function(e){fail('play-'+((e&&e.name)||'x'))});
+      setTimeout(function(){ if(!settled)fail('to') },4000);   // 第一次要等 Google 合成
     }
 
     // 呢個先係播一段文字嘅唯一入口：一律先試 audio/para/ 有冇預錄音檔，

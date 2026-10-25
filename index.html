@@ -1708,11 +1708,32 @@ function tryNextImg(img){
   /* 預抓之後幾個字。冇呢個嘅話，每個字都要等 Google 回應（300–800ms），
      家長會覺得成個默書一頓一頓。
      ⚠️ 要用同 playGV 完全一樣嘅 URL，否則預抓嘅係另一個快取鍵，白做。 */
+  /* 2026-10-26：Cathy 改做「先下載成個 mp3，再播手機入面嘅副本」（blob）。
+     原因：10/20–10/25 嘅 gv_fail 入面，tiptonghk.com 上面最多嘅係
+     play-AbortError:200 —— 個檔明明正常（200），係播放器「邊下載邊播」
+     嗰陣俾打斷（手機網絡唔穩、iOS 分段下載），即刻跌返基本發聲。
+     先 fetch 晒成個檔：
+     - 播放器讀嘅係記憶體入面嘅副本，冇下載到一半斷咗呢回事，起播即刻
+     - 預抓真係有用：舊版 fetch() 預抓同 <audio> 自己下載唔一定共用快取
+       （iOS 用分段請求），而家預抓同播放係同一個 blob，保證唔使再下載
+     - 失敗原因更清楚：下載失敗直接攞到 HTTP 狀態 */
+  var gvBlobs={};
+  function gvLoad(url){
+    if(!window.fetch||!window.URL||!URL.createObjectURL) return Promise.resolve(url);
+    var p=gvBlobs[url];
+    if(p) return p;
+    p=fetch(url).then(function(r){
+        if(!r.ok){ var e=new Error('http'); e.status=r.status; throw e }
+        return r.blob();
+      }).then(function(b){ return URL.createObjectURL(b) });
+    gvBlobs[url]=p;
+    p.catch(function(){ if(gvBlobs[url]===p) delete gvBlobs[url] });   // 失敗嘅唔好記住，下次再試
+    return p;
+  }
   function gvPrefetch(words,slow){
-    var gv=selectedGV(); if(!gv||!words||!words.length)return;
+    var gv=selectedGV(); if(!gv||!gvAllowed()||!words||!words.length)return;
     words.slice(0,3).forEach(function(w){
-      var u=gvUrl(gvText(w),readRate(w,slow),gv.alias);
-      try{ fetch(u,{cache:'force-cache'}).catch(function(){}) }catch(e){}
+      gvLoad(gvUrl(gvText(w),readRate(w,slow),gv.alias)).catch(function(){});
     });
   }
   /* 2026-10-20：J 回報「第一隻字係 Cathy，之後就唔係」。Vercel log 我哋睇唔到，
@@ -1726,19 +1747,41 @@ function tryNextImg(img){
   var gvFailSent=false;
   function gvReportFail(kind,url,a){
     if(gvFailSent)return; gvFailSent=true;
-    var code=(a&&a.error&&a.error.code)?':m'+a.error.code:'';
+    var code=(/err$/.test(kind)&&a&&a.error&&a.error.code)?':m'+a.error.code:'';   // 舊元素嘅錯誤碼唔好混入
     var host=(location.hostname||'file').replace(/^www\./,'').slice(0,12);
     function send(st){ track('gv_fail',kind+code+':'+st+':'+host) }
     try{
       fetch(url,{cache:'no-store'}).then(function(r){send(r.status)},function(){send('net')});
     }catch(e){ send('x') }
   }
+  /* AbortError = play() 俾 pause() 或者換 src 打斷咗，唔係音檔有問題。
+     實測（10/20–10/22 嘅 gv_fail）：2 次 AbortError，HTTP 都係 200 ——
+     舊版即刻跌返基本發聲，家長就聽到「頭一個 Cathy，跟住變咗第二把聲」。
+     - 我哋自己 stopAudio()（離開畫面、轉讀第二樣）：curAudio 已經唔係 a，乜都唔做。
+     - 其他原因：等 150ms 再播一次，再唔得先算失敗。 */
+  function gvPlay(a,isCurrent,fail){
+    var retried=false;
+    function go(){
+      a.play().catch(function(e){
+        var n=(e&&e.name)||'x';
+        if(n==='AbortError'){
+          if(curAudio!==a||!isCurrent())return;
+          if(!retried){
+            retried=true;
+            setTimeout(function(){ if(curAudio===a&&isCurrent())go() },150);
+            return;
+          }
+        }
+        fail('play-'+n);
+      });
+    }
+    go();
+  }
   function playGV(text,slow,gv,onFail){
     stopAudio();
     try{speechSynthesis.cancel()}catch(e){}
     var a=getPlayer(), my=playerGen;
     var url=gvUrl(gvText(text),readRate(text,slow),gv.alias);
-    a.src=url;
     curAudio=a;
     var settled=false;
     function fail(kind){
@@ -1748,6 +1791,7 @@ function tryNextImg(img){
          ⚠️ 用計數器，唔好比較 a.src —— 瀏覽器會將 ' 之類重新編碼，
             shouldn't 呢啲字會對唔上，變成永遠唔 fallback、靜晒。 */
       if(my!==playerGen)return;
+      if(curAudio!==a)return;        // 有人刻意 stopAudio()（例如離開畫面）：唔好再讀
       curAudio=null;
       gvReportFail(kind,url,a);
       onFail();
@@ -1755,7 +1799,11 @@ function tryNextImg(img){
     a.onplaying=function(){settled=true;hideNoSound()};
     a.onended=function(){curAudio=null};
     a.onerror=function(){fail('err')};
-    a.play().catch(function(e){fail('play-'+((e&&e.name)||'x'))});
+    gvLoad(url).then(function(src){
+      if(settled||my!==playerGen||curAudio!==a)return;   // 下載期間已經轉咗第二個字／離開咗
+      a.src=src;
+      gvPlay(a,function(){return my===playerGen},fail);
+    },function(e){ fail('dl'+((e&&e.status)||'')) });
     /* 比靜態音檔嗰個 1500ms 寬鬆：第一次要等 Google 合成。
        太短會令第一次永遠跌返矇聲 TTS，家長就永遠聽唔到分別。 */
     setTimeout(function(){ if(!settled)fail('to') },4000);
@@ -1834,6 +1882,7 @@ function tryNextImg(img){
       $('feedback').innerHTML='';
       $('btnCheck').textContent=(idx+1>=queue.length)?'睇答案 →':'下一個字 →';
       renderProgress();
+      gvPrefetch(queue.slice(idx,idx+3),false);
       if(auto) setTimeout(function(){speak(queue[idx],false)},parseInt($('optGap').value,10)||900);
       return;
     }
@@ -1846,6 +1895,9 @@ function tryNextImg(img){
     $('btnCheck').textContent='對答案 ✓';
     renderProgress();
     $('answerInput').focus();
+    /* 一路默一路預抓下兩個字。舊版淨係開始嗰陣抓頭 3 個（而且亂序前抓，
+       抓錯字），第 4 個字開始每個都要即場等 Google。 */
+    gvPrefetch(queue.slice(idx,idx+3),false);
     if(auto) setTimeout(function(){speak(queue[idx],false)},parseInt($('optGap').value,10)||900);
   }
   /* 撇號統一。實測家長回報：shouldn't／couldn't 明明打啱都判錯。
@@ -2544,19 +2596,25 @@ function tryNextImg(img){
     function playParaGV(text,gv,run,onFail,onDone){
       stopAudio();
       try{speechSynthesis.cancel()}catch(e){}
-      var a=getPlayer();
+      var a=getPlayer(), my=playerGen;
       var url=gvUrl(forSpeech(text),rate,gv.alias);
-      a.src=url;
       curAudio=a;
       var settled=false;
-      function fail(kind){ if(settled)return; settled=true; curAudio=null;
-                           if(run===paraRun){ gvReportFail('p'+kind,url,a); onFail() } }
+      function cur(){ return run===paraRun&&my===playerGen }
+      function fail(kind){ if(settled)return; settled=true;
+                           if(!cur()||curAudio!==a)return;      // 過咗期／刻意停咗
+                           curAudio=null;
+                           gvReportFail('p'+kind,url,a); onFail() }
       a.onplaying=function(){settled=true;hideNoSound();
                              $('paraNoSound').classList.add('hidden')};
       a.onended=function(){ settled=true; curAudio=null;
                             if(run===paraRun&&onDone)onDone() };
       a.onerror=function(){fail('err')};
-      a.play().catch(function(e){fail('play-'+((e&&e.name)||'x'))});
+      gvLoad(url).then(function(src){                           // 同 playGV：先下載成個檔再播
+        if(settled||!cur()||curAudio!==a)return;
+        a.src=src;
+        gvPlay(a,cur,fail);
+      },function(e){ fail('dl'+((e&&e.status)||'')) });
       setTimeout(function(){ if(!settled)fail('to') },4000);   // 第一次要等 Google 合成
     }
 
@@ -2589,8 +2647,7 @@ function tryNextImg(img){
     if(n===0){                              // 成句一次過
       var gv0=selectedGV();
       if(gv0&&gvAllowed()){
-        try{ fetch(gvUrl(forSpeech(raw),rate,gv0.alias),
-                   {cache:'force-cache'}).catch(function(){}) }catch(e){}
+        gvLoad(gvUrl(forSpeech(raw),rate,gv0.alias)).catch(function(){});
       }
       playChunk(raw,function(){setProg(-1,'');if(paraFinishHook)paraFinishHook()});
       return;
@@ -2605,8 +2662,7 @@ function tryNextImg(img){
       chunks.slice(0,6).forEach(function(c){
         var parts=wp?splitPunctParts(c):[{t:c}];
         parts.forEach(function(pt){
-          try{ fetch(gvUrl(forSpeech(pt.t),rate,gvp.alias),
-                     {cache:'force-cache'}).catch(function(){}) }catch(e){}
+          gvLoad(gvUrl(forSpeech(pt.t),rate,gvp.alias)).catch(function(){});
         });
       });
     })();

@@ -79,6 +79,100 @@
         text-wrap:balance}
   .lede b{color:var(--board-green)}
   .lede-s{font-size:.84rem;color:var(--ink-soft);margin:0 2px 16px}
+
+  /* ---------- 10 秒示範視窗（2026-11-11）----------
+     由 FB 入嚟嘅新家長大部分唔會開聲、唔會打字，所以用一段唔使聲、
+     唔使撳嘅動畫示範一次，播完叫佢儲去 WhatsApp 今晚用。
+     ⚠️ .hidden 喺上面聲明，呢度嘅 display:flex 會贏咗佢，
+        所以要有下面呢行（同 .modal.hidden 係同一個坑）。 */
+  #demoModal .hidden{display:none !important}
+  .demo-watch{display:inline-flex;align-items:center;gap:6px;margin:0 0 0 auto;padding:8px 0 8px 12px;
+              min-height:44px;background:none;border:0;color:var(--board-green);
+              font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer}
+  .demo-watch svg{flex:none}
+  .demo-box{padding:14px 20px 18px;border-radius:20px;max-width:380px;
+            box-shadow:0 14px 34px rgba(32,48,79,.28);text-align:left}
+  .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+  .demo-head.end{justify-content:flex-end}
+  .demo-tag{font-size:.8rem;font-weight:700;color:var(--ink-soft);letter-spacing:.5px}
+  .demo-x{width:44px;height:44px;flex:none;border:0;border-radius:22px;background:var(--soft);
+          display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+  .demo-bar{height:4px;border-radius:2px;background:#E1E5DB;overflow:hidden;margin:10px 0 16px}
+  .demo-bar i{display:block;height:4px;width:0;background:var(--board-green)}
+  .demo-cap{min-height:66px}
+  #demoModal .demo-cap h3{font-size:1.5rem;font-weight:800;line-height:1.25;margin:0 0 6px;color:var(--ink)}
+  .demo-cap div{font-size:.94rem;color:var(--ink-soft)}
+  .demo-stage{position:relative;height:172px;margin-top:12px}
+  .demo-sc{position:absolute;left:0;right:0;top:0;opacity:0;transition:opacity .28s;pointer-events:none}
+  .demo-sc.on{opacity:1}
+  .demo-mono{font-family:"Arial Rounded MT Bold","Helvetica Neue",Arial,sans-serif}
+  .demo-list{border:2px solid var(--board-green);border-radius:12px;background:#fff;padding:10px 16px}
+  .demo-list b{display:block;font-size:.8rem;color:var(--board-green);margin-bottom:4px}
+  .demo-list span{display:block;font-size:1.5rem;line-height:1.5;opacity:0;transform:translateY(6px);
+                  transition:opacity .25s,transform .25s}
+  .demo-list span.on{opacity:1;transform:none}
+  .demo-spk{display:flex;justify-content:center;margin:6px 0 14px}
+  .demo-spk.pulse svg{animation:demoPulse .5s ease-in-out 3}
+  @keyframes demoPulse{50%{transform:scale(1.16)}}
+  .demo-sub{font-size:1.25rem;text-align:center;background:var(--ink);color:#fff;border-radius:10px;padding:10px}
+  .demo-sub b{color:#FFD86B}
+  .demo-nb{position:relative;height:108px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+  .demo-nb i{position:absolute;left:0;right:0;height:1px;background:var(--rule)}
+  .demo-nb i:nth-child(1){top:22px}.demo-nb i:nth-child(2){top:46px}
+  .demo-nb i:nth-child(3){top:72px;background:var(--pen-red);opacity:.55}.demo-nb i:nth-child(4){top:94px}
+  .demo-nb .t{position:absolute;left:18px;top:24px;font-size:2.6rem;line-height:52px;letter-spacing:1px;color:var(--ink)}
+  .demo-nb .x{position:absolute;right:16px;top:28px;opacity:0;transform:scale(1.5);transition:opacity .2s,transform .2s}
+  .demo-nb .x.on{opacity:1;transform:none}
+  .demo-fix{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:1.35rem;opacity:0;transition:opacity .25s}
+  .demo-fix.on{opacity:1}
+  .demo-fix .bad{color:#C2362E;text-decoration:line-through}
+  .demo-fix .ok{color:var(--board-green);font-weight:800}
+  .demo-q{display:flex;flex-wrap:wrap;gap:8px;font-size:1.15rem}
+  .demo-q span{border:2px solid #C9C6B8;border-radius:20px;padding:6px 14px;background:#fff}
+  .demo-q .done{color:var(--ink-muted)}
+  .demo-q .again{border-color:#C2362E;color:#C2362E}
+  .demo-qn{margin-top:14px;font-size:.94rem;color:var(--ink-soft);line-height:1.6}
+  .demo-stamp{position:absolute;right:12px;top:12px;width:82px;height:82px;box-sizing:border-box;
+              border:4px solid #C2362E;border-radius:41px;color:#C2362E;background:rgba(255,255,255,.86);
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              font-weight:800;line-height:1.1;opacity:0;transform:rotate(-12deg) scale(1.8);
+              transition:opacity .22s,transform .22s}
+  .demo-stamp.on{opacity:1;transform:rotate(-12deg)}
+  .demo-stamp b{font-size:1.5rem}.demo-stamp small{font-size:.86rem}
+  .demo-end{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  #demoModal .demo-end h3{font-size:1.5rem;font-weight:800;line-height:1.25;margin:0 0 6px;color:var(--ink)}
+  .demo-end .sub{font-size:.94rem;color:var(--ink-soft)}
+  /* 主掣特登做成 a 連結：FB／IG 內置瀏覽器成日封 window.open()，封唔到普通連結。 */
+  .demo-wa{display:flex;align-items:center;gap:12px;min-height:64px;box-sizing:border-box;
+           padding:12px 16px;border-radius:12px;background:var(--board-green);color:#fff;
+           box-shadow:0 4px 0 #1F5940;text-decoration:none;
+           transition:transform .08s ease, box-shadow .08s ease}
+  .demo-wa:active{transform:scale(.98);box-shadow:0 1px 0 #1F5940}
+  .demo-wa .tx{flex:1;display:flex;flex-direction:column;gap:2px}
+  .demo-wa .tx b{font-size:1.12rem;font-weight:800;line-height:1.25}
+  .demo-wa .tx small{font-size:.8rem;color:#DDEBE3;line-height:1.3}
+  .demo-priv{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--ink-soft);line-height:1.4;margin-top:-4px}
+  .demo-try{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;
+            padding:10px 16px;border:1.5px solid var(--board-green);border-radius:12px;background:#fff;
+            color:var(--board-green);font-size:1rem;font-weight:700}
+  .demo-iab{font-size:.8rem;color:var(--ink-soft);line-height:1.4;margin-top:-8px}
+  .demo-replay{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;min-height:44px;
+               padding:0 4px;background:none;border:0;color:var(--ink-soft);font-size:.88rem;font-weight:600}
+
+  /* 用過一次嘅人唔使再睇介紹：頂部只留 logo，慳返成個畫面俾詞表（2026-11-11）。 */
+  body.used .lede,body.used .lede-s{display:none}
+  body.used header.app{margin-bottom:14px}
+  /* 「開始默書」固定喺畫面底（2026-11-11）：原本個掣喺第 1,012px，貼完詞表要捲成版先見到。
+     只喺有詞表、而原本個掣唔喺畫面入面嗰陣出。 */
+  .startbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--paper);
+            border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(32,48,79,.10);
+            padding:10px 16px calc(12px + env(safe-area-inset-bottom))}
+  .startbar.hidden{display:none}
+  .startbar-in{max-width:688px;margin:0 auto;display:flex;align-items:center;gap:14px}
+  .startbar-n{flex:none;font-size:.95rem;font-weight:800;color:var(--ink);line-height:1.25}
+  .startbar-n small{display:block;font-size:.74rem;font-weight:400;color:var(--ink-soft)}
+  .startbar .primary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;font-size:1.1rem;font-weight:800}
+  body.has-startbar .wrap{padding-bottom:120px}
   header.app .logo{width:44px;height:44px;flex:none}
   header.app .brand{display:flex;flex-direction:column;line-height:1.15}
   header.app h1{font-size:1.3rem;letter-spacing:.06em}
@@ -569,6 +663,7 @@
             fill="none" stroke-linecap="round"/>
     </svg>
     <div class="brand"><h1>貼堂</h1><span class="en">TipTong</span></div>
+    <button class="demo-watch" id="btnDemoWatch" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg>10 秒示範</button>
   </header>
   <!-- 只喺設定頁出（見 show()）：默緊書時佢只會推低個喇叭同輸入框。 -->
   <div id="lede">
@@ -961,6 +1056,70 @@ I like fruit."></textarea>
   </section>
 
   <!-- ============ Plus 解鎖 ============ -->
+  <div class="startbar hidden" id="startBar">
+    <div class="startbar-in">
+      <div class="startbar-n"><span id="startBarN">0 個字</span><small>設定喺下面，可以改</small></div>
+      <button class="primary" id="startBarGo" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg>開始默書</button>
+    </div>
+  </div>
+
+  <!-- ============ 10 秒示範（2026-11-11）============ -->
+  <div class="modal hidden" id="demoModal" role="dialog" aria-modal="true" aria-label="貼堂 10 秒示範">
+    <div class="modal-box demo-box">
+      <div id="demoPlay">
+        <div class="demo-head">
+          <span class="demo-tag">10 秒睇晒點用</span>
+          <button class="demo-x" id="demoX1" type="button" aria-label="關閉示範"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#20304F" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="demo-bar"><i id="demoBar"></i></div>
+        <div class="demo-cap"><h3 id="demoCap"></h3><div id="demoSub"></div></div>
+        <div class="demo-stage" aria-hidden="true">
+          <div class="demo-sc" id="demoS1">
+            <div class="demo-list demo-mono"><b>今個星期默書（學校詞表）</b><span>apple</span><span>because</span><span>library</span></div>
+          </div>
+          <div class="demo-sc" id="demoS2">
+            <div class="demo-spk" id="demoSpk"><svg viewBox="0 0 48 48" width="64" height="64" fill="none" stroke="#2E6E52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 19h7l10-8v26l-10-8H8z" fill="#EAF2ED"/><path d="M31 18a8 8 0 0 1 0 12M35.5 13a15 15 0 0 1 0 22"/></svg></div>
+            <div class="demo-sub">The word is: <b>because</b>.</div>
+          </div>
+          <div class="demo-sc" id="demoS3">
+            <div class="demo-nb"><i></i><i></i><i></i><i></i><span class="t demo-mono" id="demoT1"></span>
+              <svg class="x" id="demoXmark" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#D8453C" stroke-width="6" stroke-linecap="round"><path d="M10 10l28 28M38 10L10 38"/></svg></div>
+            <div class="demo-fix demo-mono" id="demoFix"><span class="bad">becos</span>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#5C6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg>
+              <span class="ok">because</span></div>
+          </div>
+          <div class="demo-sc" id="demoS4">
+            <div class="demo-q demo-mono"><span class="done">apple ✓</span><span>library</span><span class="again">because ↺</span></div>
+            <div class="demo-qn">串錯嘅字自動排返隊尾，默到啱為止。</div>
+          </div>
+          <div class="demo-sc" id="demoS5">
+            <div class="demo-nb"><i></i><i></i><i></i><i></i><span class="t demo-mono" id="demoT2"></span>
+              <div class="demo-stamp" id="demoStamp"><b>3/3</b><small>全對</small></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hidden" id="demoEnd">
+        <div class="demo-head end">
+          <button class="demo-x" id="demoX2" type="button" aria-label="關閉示範"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#20304F" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="demo-end">
+          <div class="demo-nb" aria-hidden="true"><i></i><i></i><i></i><i></i><span class="t demo-mono">because</span>
+            <div class="demo-stamp on"><b>3/3</b><small>全對</small></div></div>
+          <div><h3>今晚溫默書，用貼堂</h3><div class="sub">免費 · 唔使註冊 · 小一至小六</div></div>
+          <a class="demo-wa" id="demoSelf" href="#" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.3-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M8.5 11.5h7M8.5 14.5h4.5"/></svg>
+            <span class="tx"><b>WhatsApp 儲低，今晚用</b><small>傳俾自己或者屋企人都得</small></span>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </a>
+          <div class="demo-priv"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#5C6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>只係儲低條 link，我哋唔會收到你嘅電話號碼</div>
+          <button class="demo-try" id="demoTry" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#2E6E52" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg>而家即刻試 3 個字</button>
+          <div class="demo-iab hidden" id="demoIab">FB 入面可能冇聲，用 WhatsApp 開就有</div>
+          <button class="demo-replay" id="demoReplay" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5C6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4.5V9h4.5"/></svg>重播示範</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ OCR ============ -->
   <div class="modal hidden" id="ocrModal">
     <div class="modal-box">
@@ -1280,6 +1439,8 @@ function tryNextImg(img){
      ================================================================== */
   /* SRC_PREV：今次開頁之前記住嘅來源。分享者自己撳返自己條班群 link
      （?src=cls）嗰陣要還原返佢，唔可以當咗係班群帶嚟嘅新家長（見 initShareIn）。 */
+  /* 開頁嗰刻嘅 hash。#unlock／#l= 之後會被剷走，示範視窗要靠呢個知道係咪由嗰啲 link 入嚟。 */
+  var HASH0=location.hash||'';
   var SRC='',SRC_FROM_URL=false,SRC_PREV='';
   function parseSrc(search){
     var raw='';
@@ -1325,6 +1486,7 @@ function tryNextImg(img){
     // 第一次默書完成之後，返到主畫面先問「加到主畫面」（見 a2hsPending）
     if(name==='setup'&&a2hsPending){a2hsPending=false;if(a2hsKind)showA2hs(a2hsKind)}
     if(name==='setup'){try{refreshShareBar()}catch(e){}}
+    try{startBarRefresh()}catch(e){}
   }
 
   /* ---------- word list ---------- */
@@ -3405,6 +3567,7 @@ function tryNextImg(img){
   wireShare('S');wireShare('R');wireShare('P');
 
   function refreshShareBar(){
+    try{startBarRefresh()}catch(e){}
     var bar=$('shareBarS'); if(!bar)return;
     var info=shareEligible();
     bar.classList.toggle('hidden',!info);
@@ -3582,7 +3745,9 @@ function tryNextImg(img){
     try{localStorage.setItem(key,String(n))}catch(e){}
     return n;
   }
-  function a2hsDismissed(){return skipCount('dc_a2hs')>=SKIP_MAX}
+  /* 2026-11-11：「加到主畫面」撳一次「唔使喇」就永遠收起（之前要撳夠 3 次）。
+     個橫額佔成 200pt，會將詞表個框推到第一屏以下；家長講咗唔使就唔再阻佢。 */
+  function a2hsDismissed(){return skipCount('dc_a2hs')>=1}
 
   var deferredPrompt=null;
   window.addEventListener('beforeinstallprompt',function(e){
@@ -4618,7 +4783,7 @@ function tryNextImg(img){
          唔係 dc_ocrtrial（估錯過一次）。 */
       ['dc_plus','dc_gvdays','dc_runs','dc_para_runs','dc_ocr_runs',
        'dc_lists','dc_voice','dc_optin','dc_wa','dc_waskip','dc_plushint','dc_a2hs',
-       'dc_lastopen','dc_did','dc_src','dc_share_done','dc_shareskip']
+       'dc_lastopen','dc_did','dc_src','dc_share_done','dc_shareskip','dc_demo']
         .forEach(function(k){ try{localStorage.removeItem(k)}catch(e){} });
       location.hash='';
       location.reload();
@@ -4636,6 +4801,188 @@ function tryNextImg(img){
   }
   initGen();
   window.addEventListener('hashchange',initGen);
+
+
+  /* ==================================================================
+     10 秒示範視窗（2026-11-11 新增）
+     ------------------------------------------------------------------
+     點解：9 月 22 日至 11 月 10 日，「試下」撳咗 3,887 次，但只多咗 307 部機
+     做完一次默書。由 FB 入嚟嘅家長多數靜音、小朋友唔喺身邊，要佢開聲再
+     打 3 個字先見到價值，大部分人做唔完。所以改成：唔使聲、唔使撳嘅
+     10 秒動畫 → 播完叫佢儲去 WhatsApp，今晚用正常瀏覽器開。
+
+     自動彈出嘅條件（全部符合先彈，每部機一次）：
+       未做過任何默書、未睇過示範、未解鎖 Plus、冇儲過詞表，
+       而且唔係由 #l=（同班分享）、#unlock=（解鎖）、#gen／#ocrdebug、
+       主畫面圖示、或者「儲去 WhatsApp」條 link（src 以 s- 開頭）入嚟。
+
+     事件（value 一定有嘢，唔會令試算表 SPLIT 錯位）：
+       demo_play   開始播　　　值：auto（自動彈）／manual（自己撳「睇 10 秒示範」）
+       demo_end    睇到結尾　　值：auto／manual
+       demo_close  關閉　　　　值：s1–s6（喺第幾幕關）／end（結尾先關）
+       self_send   撳「WhatsApp 儲低」　值：來源
+       demo_try    撳「而家即刻試」　　 值：來源
+     夜晚由 WhatsApp 撳返嚟嘅人：條 link 係 ?src=s-<原本來源>，
+     照舊行 src／src_act／src_paid，所以仲分到係邊篇帖帶嚟。
+
+     ⚠️ 想停用自動彈出：將下面 DEMO_AUTO 改做 false（「睇 10 秒示範」個掣照用得）。
+     ⚠️ 呢段一定要喺 first_open 判斷之後先行（track 會寫 dc_did）。
+     ================================================================== */
+  var DEMO_AUTO=true;
+  var demoTimers=[],demoScene=0,demoMode='auto',demoAtEnd=false,demoSeenMem=false;
+  function demoSeen(){
+    if(demoSeenMem)return true;
+    try{if(localStorage.getItem('dc_demo'))return true}catch(e){}
+    try{if(sessionStorage.getItem('dc_demo'))return true}catch(e){}
+    return false;
+  }
+  function demoMarkSeen(){
+    demoSeenMem=true;
+    try{localStorage.setItem('dc_demo','1')}catch(e){}
+    try{sessionStorage.setItem('dc_demo','1')}catch(e){}
+  }
+  function demoHasLists(){
+    try{var r=localStorage.getItem(LS_LISTS);return !!(r&&r!=='[]'&&r!=='{}')}catch(e){return false}
+  }
+  function demoParaRuns(){
+    try{return parseInt(localStorage.getItem('dc_para_runs')||'0',10)||0}catch(e){return 0}
+  }
+  function demoFromSelf(){return /^s-/.test(SRC)||SRC==='self'}
+  function demoSelfSrc(){
+    if(!SRC)return 'self';
+    if(demoFromSelf())return SRC;
+    return ('s-'+SRC).slice(0,24);
+  }
+  function demoAutoOk(){
+    if(!DEMO_AUTO||demoSeen())return false;
+    if(runCount()>0||demoParaRuns()>0||plusUnlocked()||demoHasLists())return false;
+    if(isStandalone()||demoFromSelf())return false;
+    if(/^#(l=|unlock=|gen|ocrdebug)/i.test(HASH0))return false;
+    var open=document.querySelectorAll('.modal:not(.hidden)');
+    return !open.length;
+  }
+  function demoAt(ms,fn){demoTimers.push(setTimeout(fn,ms))}
+  function demoStop(){demoTimers.forEach(clearTimeout);demoTimers=[]}
+  function demoShow(n,cap,sub){
+    demoScene=n;
+    var panel=[0,1,2,3,3,4,5][n];             // 第 3、4 幕共用同一張四線簿
+    for(var i=1;i<=5;i++)$('demoS'+i).classList.toggle('on',i===panel);
+    $('demoCap').textContent=cap;
+    $('demoSub').textContent=sub||'';
+  }
+  function demoType(el,txt,step,start){
+    el.textContent='';
+    txt.split('').forEach(function(c,i){demoAt(start+i*step,function(){el.textContent+=c})});
+  }
+  function demoReset(){
+    demoStop();demoAtEnd=false;demoScene=0;
+    $('demoPlay').classList.remove('hidden');
+    $('demoEnd').classList.add('hidden');
+    var ws=$('demoS1').querySelectorAll('span');
+    for(var i=0;i<ws.length;i++)ws[i].classList.remove('on');
+    $('demoXmark').classList.remove('on');
+    $('demoFix').classList.remove('on');
+    $('demoStamp').classList.remove('on');
+    $('demoSpk').classList.remove('pulse');
+    $('demoT1').textContent='';$('demoT2').textContent='';
+    var bar=$('demoBar');
+    bar.style.transition='none';bar.style.width='0';
+    void bar.offsetWidth;                       // 強制重排，進度條先會由 0 重新行
+    bar.style.transition='width 10s linear';bar.style.width='100%';
+  }
+  function demoRun(){
+    demoReset();
+    track('demo_play',demoMode);
+    demoShow(1,'貼上學校詞表','今個星期默乜，貼入嚟就得');
+    var ws=$('demoS1').querySelectorAll('span');
+    [0,1,2].forEach(function(i){demoAt(300+i*250,function(){ws[i].classList.add('on')})});
+    demoAt(1600,function(){
+      demoShow(2,'自動讀出嚟','小朋友聽住讀音默');
+      $('demoSpk').classList.add('pulse');
+    });
+    demoAt(3000,function(){demoShow(3,'小朋友喺四線簿串字','')});
+    demoType($('demoT1'),'becos',220,3200);
+    demoAt(4600,function(){
+      demoShow(4,'自動改，即刻知錯邊','唔使家長逐個字對');
+      $('demoXmark').classList.add('on');
+    });
+    demoAt(4900,function(){$('demoFix').classList.add('on')});
+    demoAt(6300,function(){demoShow(5,'錯字自動再默','')});
+    demoAt(7800,function(){demoShow(6,'再默一次：全對','')});
+    demoType($('demoT2'),'because',110,7950);
+    demoAt(8900,function(){$('demoStamp').classList.add('on')});
+    demoAt(10000,function(){
+      demoAtEnd=true;
+      $('demoPlay').classList.add('hidden');
+      $('demoEnd').classList.remove('hidden');
+      track('demo_end',demoMode);
+    });
+  }
+  function demoOpen(mode){
+    demoMode=mode;
+    demoMarkSeen();
+    $('demoSelf').href='https://wa.me/?text='+encodeURIComponent(
+      '貼堂｜英文默書練習\n貼上學校英文詞表，自動讀、自動改，錯字自動再默。\n'+
+      '今晚溫默書用 👇\nhttps://www.tiptonghk.com/?src='+demoSelfSrc());
+    $('demoIab').classList.toggle('hidden',!isInAppBrowser());
+    $('demoModal').classList.remove('hidden');
+    demoRun();
+  }
+  function demoClose(silent){
+    if($('demoModal').classList.contains('hidden'))return;
+    demoStop();
+    $('demoModal').classList.add('hidden');
+    if(!silent)track('demo_close',demoAtEnd?'end':'s'+(demoScene||1));
+  }
+  $('demoX1').onclick=function(){demoClose()};
+  $('demoX2').onclick=function(){demoClose()};
+  $('demoModal').addEventListener('click',function(e){if(e.target===this)demoClose()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')demoClose()});
+  $('demoReplay').onclick=function(){demoMode='manual';demoRun()};
+  $('btnDemoWatch').onclick=function(){demoOpen('manual')};
+  $('demoSelf').addEventListener('click',function(){
+    track('self_send',SRC||'-');
+    /* 唔好即刻收起：有啲瀏覽器會喺跳走之前取消未完成嘅動作。 */
+    setTimeout(function(){demoClose(true)},800);
+  });
+  $('demoTry').onclick=function(){
+    demoClose(true);
+    track('demo_try',SRC||'-');
+    $('wordInput').value=DEMO_WORDS.join('\n');
+    $('listName').value='';
+    refreshShareBar();
+    /* 直接行「開始默書」：唔使佢再捲 1,000px 落去搵個掣。
+       click() 喺同一個手勢入面，iOS 解鎖語音照樣有效。 */
+    $('btnStart').click();
+  };
+  if(demoAutoOk())setTimeout(function(){if(demoAutoOk())demoOpen('auto')},800);
+
+  /* ---------- 固定喺底嘅「開始默書」＋ 用過之後收起介紹（2026-11-11）---------- */
+  var startInView=false;
+  function startBarRefresh(){
+    var bar=$('startBar'); if(!bar)return;
+    var n=getWords().length;
+    var on=!views.setup.classList.contains('hidden') && n>0 && !startInView;
+    bar.classList.toggle('hidden',!on);
+    document.body.classList.toggle('has-startbar',on);
+    $('startBarN').textContent='共 '+n+' 個';
+  }
+  $('startBarGo').onclick=function(){
+    track('start_bar',getWords().length);
+    $('btnStart').click();           // 同一個手勢，iOS 解鎖語音照樣有效
+  };
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){
+      startInView=es[0].isIntersecting; startBarRefresh();
+    },{threshold:0.6}).observe($('btnStart'));
+  }
+  function usedRefresh(){
+    document.body.classList.toggle('used',runCount()>0||demoParaRuns()>0||plusUnlocked());
+  }
+  usedRefresh();
+  startBarRefresh();
+
+
 
   /* ⚠️ 一定要喺 initGen 之後行：#gen 係擁有者工具，唔可以被 #unlock 攔走。
      兩者 hash 唔同，互不衝突，但次序寫死咗就唔會將來改亂。 */
